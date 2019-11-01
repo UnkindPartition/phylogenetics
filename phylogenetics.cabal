@@ -1,0 +1,12 @@
+name:                phylogenetics
+version:             0.1
+build-type:          Simple
+cabal-version:       >=1.10
+
+executable phylogenetics
+  main-is:             Main.hs
+  build-depends:       base
+  ghc-options:         -Wall
+  default-language:    Haskell2010
+  default-extensions:  ScopedTypeVariables, RecordWildCards, NamedFieldPuns,
+                       NumDecimals, ViewPatterns, BangPatterns

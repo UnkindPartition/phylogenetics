@@ -5,8 +5,18 @@ cabal-version:       >=1.10
 
 executable phylogenetics
   main-is:             Main.hs
-  build-depends:       base
+  other-modules:
+    Types
+    Gen
+  build-depends:       base, vector, random-fu, ad, containers, mtl
   ghc-options:         -Wall
   default-language:    Haskell2010
   default-extensions:  ScopedTypeVariables, RecordWildCards, NamedFieldPuns,
-                       NumDecimals, ViewPatterns, BangPatterns
+                       NumDecimals, ViewPatterns, BangPatterns, DerivingStrategies,
+                       FlexibleInstances, MultiParamTypeClasses,
+                       GeneralizedNewtypeDeriving, RankNTypes, OverloadedLabels,
+                       TemplateHaskell, DataKinds, TypeFamilies,
+                       UndecidableInstances, DeriveFunctor, DeriveFoldable,
+                       DeriveTraversable, DeriveAnyClass, DeriveGeneric,
+                       OverloadedStrings, MultiWayIf, LambdaCase,
+                       FlexibleContexts, TupleSections

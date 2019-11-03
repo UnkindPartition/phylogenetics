@@ -1,6 +1,8 @@
 module Types where
 
-import qualified Data.IntMap as IntMap
+import qualified Data.IntMap.Strict as IntMap
+import qualified Data.Vector.Unboxed as VU
+import Data.Word
 
 newtype NodeId = NodeId Int
   deriving newtype Show
@@ -20,3 +22,9 @@ data Topology
 -- 'NodeId'.
 newtype BranchLengths = BranchLengths (IntMap.IntMap BranchLength)
   deriving newtype Show
+
+data Observations = Observations
+  { numOfCharacters :: !Int
+  , characters :: !(IntMap.IntMap (VU.Vector Word8))
+  }
+  deriving Show

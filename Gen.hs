@@ -6,6 +6,7 @@ import Data.Random.Distribution.Binomial
 import Data.Random.Distribution.Pareto
 import Data.Traversable
 import qualified Data.IntMap as IntMap
+import qualified Data.Vector.Unboxed as VU
 import Control.Monad.State
 
 import Types
@@ -48,3 +49,17 @@ randomBranchLengths n_leaves = do
   -- branch ids vary from 1 to 2*n_leaves-2.
   BranchLengths . IntMap.fromList <$>
     for [1 .. 2*n_leaves-2] (\i -> (i,) <$> randomBranchLength)
+
+randomObservations
+  :: Topology -- ^ the tree topology (used to extract the leaf ids)
+  -> Int -- ^ the number of characters
+  -> RVar Observations
+randomObservations tree nchars = fmap (Observations nchars) $
+  for leaf_ids $ \() ->
+    VU.replicateM nchars (uniform 0 3)
+  where
+    leaf_ids :: IntMap.IntMap ()
+    leaf_ids = getLeafIds tree
+    getLeafIds = \case
+      Bin _ t1 t2 -> getLeafIds t1 <> getLeafIds t2
+      Leaf (NodeId id_) -> IntMap.singleton id_ ()

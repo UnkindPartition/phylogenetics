@@ -8,7 +8,9 @@ executable phylogenetics
   other-modules:
     Types
     Gen
-  build-depends:       base, vector, random-fu, ad, containers, mtl
+    Likelihood
+  build-depends:       base, vector, random-fu, ad, containers, mtl,
+                       tuples-homogenous-h98
   ghc-options:         -Wall
   default-language:    Haskell2010
   default-extensions:  ScopedTypeVariables, RecordWildCards, NamedFieldPuns,

@@ -16,6 +16,11 @@ data Topology
   | Bin !NodeId Topology Topology
   deriving Show
 
+getNodeId :: Topology -> NodeId
+getNodeId = \case
+  Leaf i -> i
+  Bin i _ _ -> i
+
 -- | The branch lengths of a phylogenetic tree.
 --
 -- The map is from the 'NodeId' to the length of a branch leading to that
@@ -23,8 +28,23 @@ data Topology
 newtype BranchLengths = BranchLengths (IntMap.IntMap BranchLength)
   deriving newtype Show
 
+getBranchLength :: BranchLengths -> NodeId -> BranchLength
+getBranchLength (BranchLengths bl) (NodeId node_id) = bl IntMap.! node_id
+
 data Observations = Observations
-  { numOfCharacters :: !Int
+  { numOfSites :: !Int
   , characters :: !(IntMap.IntMap (VU.Vector Word8))
   }
   deriving Show
+
+-- | The transition matrix stored in the row-major order
+data EvolutionModel = EvolutionModel (VU.Vector Double)
+
+transitionProbability
+  :: EvolutionModel
+  -> BranchLength
+  -> Word8 -- from
+  -> Word8 -- to
+  -> Double
+transitionProbability (EvolutionModel mx) (BranchLength len) from to =
+  exp $ len * VU.unsafeIndex mx (fromIntegral $ from * 4 + to)

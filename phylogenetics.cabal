@@ -6,7 +6,7 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:
     src
-  other-modules:
+  exposed-modules:
     Phylogenetics.Types
     Phylogenetics.Gen
     Phylogenetics.Likelihood

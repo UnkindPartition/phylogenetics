@@ -1,4 +1,4 @@
-module Types where
+module Phylogenetics.Types where
 
 import qualified Data.IntMap.Strict as IntMap
 import qualified Data.Vector.Unboxed as VU

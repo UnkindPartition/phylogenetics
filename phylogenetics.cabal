@@ -3,12 +3,13 @@ version:             0.1
 build-type:          Simple
 cabal-version:       >=1.10
 
-executable phylogenetics
-  main-is:             Main.hs
+library
+  hs-source-dirs:
+    src
   other-modules:
-    Types
-    Gen
-    Likelihood
+    Phylogenetics.Types
+    Phylogenetics.Gen
+    Phylogenetics.Likelihood
   build-depends:       base, vector, random-fu, ad, containers, mtl,
                        tuples-homogenous-h98
   ghc-options:         -Wall

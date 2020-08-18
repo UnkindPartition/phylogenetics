@@ -1,5 +1,5 @@
 -- | Random topology and branch lengths generation
-module Gen where
+module Phylogenetics.Gen where
 
 import Data.Random
 import Data.Random.Distribution.Binomial
@@ -9,7 +9,7 @@ import qualified Data.IntMap as IntMap
 import qualified Data.Vector.Unboxed as VU
 import Control.Monad.State
 
-import Types
+import Phylogenetics.Types
 
 randomTopology
   :: Int -- ^ number of leaves to have in the tree

@@ -11,7 +11,7 @@ library
     Phylogenetics.Gen
     Phylogenetics.Likelihood
   build-depends:       base, vector, random-fu, ad, containers, mtl,
-                       tuples-homogenous-h98
+                       tuples-homogenous-h98, hmatrix
   ghc-options:         -Wall
   default-language:    Haskell2010
   default-extensions:  ScopedTypeVariables, RecordWildCards, NamedFieldPuns,
@@ -23,3 +23,18 @@ library
                        DeriveTraversable, DeriveAnyClass, DeriveGeneric,
                        OverloadedStrings, MultiWayIf, LambdaCase,
                        FlexibleContexts, TupleSections
+
+test-suite test
+  default-language:
+    Haskell2010
+  type:
+    exitcode-stdio-1.0
+  hs-source-dirs:
+    tests
+  main-is:
+    test.hs
+  build-depends:
+      base >= 4
+    , tasty >= 1.3
+    , tasty-hunit
+    , phylogenetics

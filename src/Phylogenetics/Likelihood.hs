@@ -10,7 +10,7 @@ import Phylogenetics.Types
 
 -- | The full log-likelihood, summed over all sites
 logLikelihood
-  :: EvolutionModel
+  :: RateMatrix
   -> Observations
   -> BranchTimes
   -> Topology
@@ -21,7 +21,7 @@ logLikelihood evolModel obs bl tree = sum $ do
 
 -- | Likelihood for a single site
 likelihood1
-  :: EvolutionModel
+  :: RateMatrix
   -> Observations
   -> BranchTimes
   -> Int -- ^ the index of the site
@@ -45,7 +45,7 @@ likelihood1 evolModel obs bl site = VU.sum . go where
 -- | The F-algebra that, given a likelihoods of subtrees calculates the
 -- likelihood of the tree
 falg
-  :: EvolutionModel
+  :: RateMatrix
   -> BranchTimes
   -> Tuple2 Topology
     -- ^ the sub-subtrees (the two immediate children of the current subtree)

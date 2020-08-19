@@ -3,6 +3,7 @@ module Phylogenetics.Types where
 import qualified Data.IntMap.Strict as IntMap
 import qualified Data.Vector.Unboxed as VU
 import Data.Word
+import Numeric.LinearAlgebra
 
 -- | A node in a phylogenetic tree
 newtype NodeId = NodeId Int
@@ -44,15 +45,12 @@ data Observations = Observations
   }
   deriving Show
 
--- | The transition matrix stored in the row-major order
-data EvolutionModel = EvolutionModel (VU.Vector Double)
+-- | The rate matrix
+data RateMatrix = RateMatrix (Matrix Double)
 
--- | Calculate the transition probability from one nucleotide to another
-transitionProbability
-  :: EvolutionModel
+-- | Calculate the transition probabilities from one nucleotide to another
+transitionProbabilities
+  :: RateMatrix
   -> BranchTime
-  -> Word8 -- ^ from nucleotide
-  -> Word8 -- ^ to nucleotide
-  -> Double
-transitionProbability (EvolutionModel mx) (BranchTime len) from to =
-  exp $ len * VU.unsafeIndex mx (fromIntegral $ from * 4 + to)
+  -> Matrix Double
+transitionProbabilities (RateMatrix q) (BranchTime t) = expm (scale t q)

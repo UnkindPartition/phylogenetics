@@ -12,7 +12,7 @@ import Phylogenetics.Types
 logLikelihood
   :: EvolutionModel
   -> Observations
-  -> BranchLengths
+  -> BranchTimes
   -> Topology
   -> Double
 logLikelihood evolModel obs bl tree = sum $ do
@@ -23,7 +23,7 @@ logLikelihood evolModel obs bl tree = sum $ do
 likelihood1
   :: EvolutionModel
   -> Observations
-  -> BranchLengths
+  -> BranchTimes
   -> Int -- ^ the index of the site
   -> Topology
   -> Double
@@ -46,7 +46,7 @@ likelihood1 evolModel obs bl site = VU.sum . go where
 -- likelihood of the tree
 falg
   :: EvolutionModel
-  -> BranchLengths
+  -> BranchTimes
   -> Tuple2 Topology
     -- ^ the sub-subtrees (the two immediate children of the current subtree)
   -> Tuple2 (VU.Vector Double)
@@ -65,4 +65,4 @@ falg evolModel bl subs sub_liks = VU.fromList $ do
       sub_c <- [0..3]
       return $
         VU.unsafeIndex sub_lik (fromIntegral sub_c) *
-          transitionProbability evolModel (getBranchLength bl $ getNodeId sub) root_c sub_c
+          transitionProbability evolModel (getBranchTime bl $ getNodeId sub) root_c sub_c

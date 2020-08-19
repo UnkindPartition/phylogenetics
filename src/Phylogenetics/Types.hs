@@ -8,8 +8,11 @@ import Data.Word
 newtype NodeId = NodeId Int
   deriving newtype Show
 
--- | The length of a branch in a phylogenetic tree
-newtype BranchLength = BranchLength Double
+-- | The time corresponding to a tree branch.
+--
+-- This is not the «branch length» (the expected number of substitutions),
+-- but is linearly related to it for a given rate matrix.
+newtype BranchTime = BranchTime Double
   deriving newtype (Eq, Ord, Num, Real, Fractional, RealFrac, Show)
 
 -- | A phylogenetic tree topology.
@@ -23,16 +26,16 @@ getNodeId = \case
   Leaf i -> i
   Bin i _ _ -> i
 
--- | The branch lengths of a phylogenetic tree.
+-- | The time lengths of a phylogenetic tree.
 --
 -- The map is from the 'NodeId' to the length of a branch leading to that
 -- 'NodeId'.
-newtype BranchLengths = BranchLengths (IntMap.IntMap BranchLength)
+newtype BranchTimes = BranchTimes (IntMap.IntMap BranchTime)
   deriving newtype Show
 
 -- | Extract the branch length leading to a given node
-getBranchLength :: BranchLengths -> NodeId -> BranchLength
-getBranchLength (BranchLengths bl) (NodeId node_id) = bl IntMap.! node_id
+getBranchTime :: BranchTimes -> NodeId -> BranchTime
+getBranchTime (BranchTimes bl) (NodeId node_id) = bl IntMap.! node_id
 
 -- | A set of observed characters per site
 data Observations = Observations
@@ -47,9 +50,9 @@ data EvolutionModel = EvolutionModel (VU.Vector Double)
 -- | Calculate the transition probability from one nucleotide to another
 transitionProbability
   :: EvolutionModel
-  -> BranchLength
+  -> BranchTime
   -> Word8 -- ^ from nucleotide
   -> Word8 -- ^ to nucleotide
   -> Double
-transitionProbability (EvolutionModel mx) (BranchLength len) from to =
+transitionProbability (EvolutionModel mx) (BranchTime len) from to =
   exp $ len * VU.unsafeIndex mx (fromIntegral $ from * 4 + to)

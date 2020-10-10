@@ -18,7 +18,7 @@ logLikelihood
   -> Double
 logLikelihood rate_mx obs bls tree = sum $ do
   site <- [0 .. numOfSites obs - 1]
-  return . log $ likelihood1 rate_mx obs bls site tree 
+  return . log $ likelihood1 rate_mx obs bls site tree
 
 -- | Likelihood for a single site
 likelihood1
@@ -28,7 +28,8 @@ likelihood1
   -> Int -- ^ the index of the site
   -> Topology
   -> Double
-likelihood1 rate_mx obs bls site = VU.sum . go where
+likelihood1 rate_mx obs bls site topo =
+  VU.sum (go topo) / fromIntegral (numOfStates rate_mx) where
   -- Given a (sub)tree topology, return, for each root state,
   -- the probability of observations at the tips
   go :: Topology -> VU.Vector Double
@@ -58,7 +59,7 @@ falg
     -- ^ likelihood of the subtree (for each of the 4 values of the character)
 falg rate_mx bls subs sub_liks = VU.fromList $ do
   -- iterate over the possible characters at the root
-  root_c <- [0..3]
+  root_c <- [0..numOfStates rate_mx - 1]
   return . product $ do
     -- iterate over the two sub-subtrees (applicative do)
     sub <- subs
@@ -66,9 +67,9 @@ falg rate_mx bls subs sub_liks = VU.fromList $ do
     let
       bl = getBranchLength bls $ getNodeId sub
       transition_probs = transitionProbabilities rate_mx bl
-    return . product $ do  
+    return . sum $ do
       -- iterate over the sub-subtree character
-      sub_c <- [0..3]
+      sub_c <- [0..numOfStates rate_mx - 1]
       return $
         VU.unsafeIndex sub_lik (fromIntegral sub_c) *
         (transition_probs `Matrix.atIndex` (root_c, sub_c))

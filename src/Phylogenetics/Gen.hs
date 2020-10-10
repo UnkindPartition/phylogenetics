@@ -36,19 +36,19 @@ randomTopology = flip evalStateT (NodeId 0) . go
       put $! NodeId $! i+1
       return r
 
-randomBranchTime :: RVar BranchTime
-randomBranchTime = BranchTime <$> pareto 1 0.9 -- x_min, alpha
+randomBranchLength :: RVar BranchLength
+randomBranchLength = BranchLength <$> pareto 1 0.9 -- x_min, alpha
 
-randomBranchTimes
+randomBranchLengths
   :: Int -- ^ number of leaves in the tree
-  -> RVar BranchTimes
-randomBranchTimes n_leaves = do
+  -> RVar BranchLengths
+randomBranchLengths n_leaves = do
   -- The number of internal nodes in the tree is equal to n_leaves - 1.
   -- The total number of nodes in the tree is 2*n_leaves-1.
   -- The tree root (NodeId 0) does not have an incoming branch, so the
   -- branch ids vary from 1 to 2*n_leaves-2.
-  BranchTimes . IntMap.fromList <$>
-    for [1 .. 2*n_leaves-2] (\i -> (i,) <$> randomBranchTime)
+  BranchLengths . IntMap.fromList <$>
+    for [1 .. 2*n_leaves-2] (\i -> (i,) <$> randomBranchLength)
 
 randomObservations
   :: Topology -- ^ the tree topology (used to extract the leaf ids)

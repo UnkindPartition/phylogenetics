@@ -35,6 +35,10 @@ test-suite test
     test.hs
   build-depends:
       base >= 4
-    , tasty >= 1.3
-    , tasty-hunit
     , phylogenetics
+    , tasty
+    , tasty-hunit
+    , tasty-quickcheck
+    , tasty-expected-failure
+    , QuickCheck
+    , hmatrix

@@ -29,7 +29,7 @@ getNodeId = \case
 -- The map is from the 'NodeId' to the length of a branch leading to that
 -- 'NodeId'.
 newtype BranchLengths = BranchLengths (IntMap.IntMap BranchLength)
-  deriving newtype Show
+  deriving Show
 
 -- | Extract the branch length leading to a given node
 getBranchLength :: BranchLengths -> NodeId -> BranchLength
@@ -45,6 +45,7 @@ data Observations = Observations
 
 -- | The rate matrix
 data RateMatrix = RateMatrix (Matrix Double)
+  deriving Show
 
 -- | Return the number of states of a character (e.g. 4 for DNA)
 numOfStates :: RateMatrix -> Int

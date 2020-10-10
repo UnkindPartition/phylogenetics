@@ -35,7 +35,8 @@ newtype BranchLengths = BranchLengths (IntMap.IntMap BranchLength)
 getBranchLength :: BranchLengths -> NodeId -> BranchLength
 getBranchLength (BranchLengths bl) (NodeId node_id) = bl IntMap.! node_id
 
--- | A set of observed characters per site
+-- | A set of observed characters per site. Character states are encoded by
+-- integers from 0 to @'numOfStates' - 1@.
 data Observations = Observations
   { numOfSites :: !Int
   , characters :: !(IntMap.IntMap (VU.Vector Word8))
@@ -45,9 +46,13 @@ data Observations = Observations
 -- | The rate matrix
 data RateMatrix = RateMatrix (Matrix Double)
 
+-- | Return the number of states of a character (e.g. 4 for DNA)
+numOfStates :: RateMatrix -> Int
+numOfStates (RateMatrix mx) = rows mx
+
 -- | Calculate the transition probabilities from one nucleotide to another
 transitionProbabilities
   :: RateMatrix
   -> BranchLength
   -> Matrix Double
-transitionProbabilities (RateMatrix q) (BranchTime t) = expm (scale t q)
+transitionProbabilities (RateMatrix q) (BranchLength t) = expm (scale t q)

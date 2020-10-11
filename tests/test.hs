@@ -3,7 +3,6 @@ import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck hiding ((><), scale)
 import Test.Tasty.ExpectedFailure
-import Test.QuickCheck.Gen hiding (scale)
 import Text.Printf (printf)
 import qualified Data.IntSet as IntSet
 import qualified Data.IntMap as IntMap
@@ -82,6 +81,7 @@ observationsGen rate_mx topo = do
     . IntSet.toList $ leaf_ids
 
 
+main :: IO ()
 main = defaultMain $ testGroup "Tests"
   [ testGroup "transitionProbabilities"
     [ testProperty "transitionProbabilities is a stochastic matrix" $ \rm bl ->

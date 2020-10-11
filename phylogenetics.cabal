@@ -36,7 +36,7 @@ test-suite test
   other-modules:
     NaiveLikelihood
   ghc-options:
-    -Wall -Wno-orphans
+    -Wall -Wno-orphans -Wno-name-shadowing
   build-depends:
       base >= 4
     , phylogenetics

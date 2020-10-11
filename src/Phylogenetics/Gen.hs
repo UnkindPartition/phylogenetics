@@ -7,34 +7,26 @@ import Data.Random.Distribution.Pareto
 import Data.Traversable
 import qualified Data.IntMap as IntMap
 import qualified Data.Vector.Unboxed as VU
-import Control.Monad.State
 
 import Phylogenetics.Types
 
 randomTopology
   :: Int -- ^ number of leaves to have in the tree
   -> RVar Topology
-randomTopology = flip evalStateT (NodeId 0) . go
+randomTopology = fmap addIdsToTopology . go
   where
-    go :: Int -> StateT NodeId RVar Topology
+    go :: Int -> RVar Topology
     go n_leaves
-      | n_leaves == 1 = Leaf <$> getId
+      | n_leaves == 1 = pure $ Leaf (NodeId 0)
       | n_leaves >= 2 = do
           -- The below generation scheme ensures that both n_leaves_left and
           -- n_leaves_right are positive.
-          n_leaves_left <- lift $ (+1) <$> binomial (n_leaves-2) (0.5 :: Double)
+          n_leaves_left <- (+1) <$> binomial (n_leaves-2) (0.5 :: Double)
           let n_leaves_right = n_leaves - n_leaves_left
-          Bin
-            <$> getId
-            <*> go n_leaves_left
+          Bin (NodeId 0)
+            <$> go n_leaves_left
             <*> go n_leaves_right
       | otherwise = undefined
-
-    getId :: MonadState NodeId m => m NodeId
-    getId = do
-      r@(NodeId i) <- get
-      put $! NodeId $! i+1
-      return r
 
 randomBranchLength :: RVar BranchLength
 randomBranchLength = BranchLength <$> pareto 1 0.9 -- x_min, alpha

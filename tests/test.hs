@@ -61,6 +61,9 @@ instance Arbitrary Topology where
     [ (1, Bin (NodeId 0) <$> arbitrary <*> arbitrary)
     , (5, pure $ Leaf $ NodeId 0)
     ]
+  shrink = \case
+    Leaf{} -> []
+    Bin _ l r -> [l, r]
 
 observationsGen :: RateMatrix -> Topology -> Gen Observations
 observationsGen rate_mx topo = do

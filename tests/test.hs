@@ -59,7 +59,7 @@ branchLengthsGen topo = do
 instance Arbitrary Topology where
   arbitrary = addIdsToTopology <$> frequency
     [ (1, Bin (NodeId 0) <$> arbitrary <*> arbitrary)
-    , (5, pure $ Leaf $ NodeId 0)
+    , (4, pure $ Leaf $ NodeId 0)
     ]
   shrink = \case
     Leaf{} -> []
@@ -114,7 +114,9 @@ main = defaultMain $ testGroup "Tests"
         assertBool
           (printf "Expected %.3f, got %.3f" expected_ll ll)
           (abs (expected_ll - ll) < 1e-10)
-    , testProperty "Checking against naive implementation" $ \topo rate_mx ->
+    , testProperty "Checking against naive implementation" $ \topo ->
+        forAll (choose (2, 4)) $ \states ->
+        forAll (rateMatrixGen states) $ \rate_mx ->
         forAll (branchLengthsGen topo) $ \bls ->
         forAll (observationsGen rate_mx topo) $ \obs ->
           let

@@ -35,6 +35,8 @@ test-suite test
     test.hs
   other-modules:
     NaiveLikelihood
+  ghc-options:
+    -Wall -Wno-orphans
   build-depends:
       base >= 4
     , phylogenetics

@@ -48,8 +48,8 @@ data RateMatrix = RateMatrix (Matrix Double)
   deriving Show
 
 -- | Return the number of states of a character (e.g. 4 for DNA)
-numOfStates :: RateMatrix -> Int
-numOfStates (RateMatrix mx) = rows mx
+numOfStates :: Integral a => RateMatrix -> a
+numOfStates (RateMatrix mx) = fromIntegral $ rows mx
 
 -- | Calculate the transition probabilities from one nucleotide to another
 transitionProbabilities

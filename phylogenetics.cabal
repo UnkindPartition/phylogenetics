@@ -33,6 +33,8 @@ test-suite test
     tests
   main-is:
     test.hs
+  other-modules:
+    NaiveLikelihood
   build-depends:
       base >= 4
     , phylogenetics
@@ -42,3 +44,15 @@ test-suite test
     , tasty-expected-failure
     , QuickCheck
     , hmatrix
+    , containers
+    , vector
+    , foldl
+  default-extensions:  ScopedTypeVariables, RecordWildCards, NamedFieldPuns,
+                       NumDecimals, ViewPatterns, BangPatterns, DerivingStrategies,
+                       FlexibleInstances, MultiParamTypeClasses,
+                       GeneralizedNewtypeDeriving, RankNTypes, OverloadedLabels,
+                       TemplateHaskell, DataKinds, TypeFamilies,
+                       UndecidableInstances, DeriveFunctor, DeriveFoldable,
+                       DeriveTraversable, DeriveAnyClass, DeriveGeneric,
+                       OverloadedStrings, MultiWayIf, LambdaCase,
+                       FlexibleContexts, TupleSections

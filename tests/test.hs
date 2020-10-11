@@ -9,6 +9,7 @@ import Control.Monad
 import Numeric.LinearAlgebra
 import Phylogenetics.Types
 import Phylogenetics.Likelihood
+import NaiveLikelihood
 
 instance Arbitrary RateMatrix where
   arbitrary = do

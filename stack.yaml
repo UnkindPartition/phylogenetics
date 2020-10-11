@@ -42,6 +42,12 @@ packages:
 extra-deps:
   - github: feuerbach/tasty-expected-failure
     commit: 213636ed31a38ea3014fe8dac7561efe7939e306
+  - github: feuerbach/vector
+    commit: 5f56cef682455299fad398da520822eb3176ef74
+  - github: feuerbach/hmatrix
+    commit: 4fde082cbd6d9552c6ca35cd31df8eb2c82cd3f5
+    subdirs:
+      - packages/base
 
 # Override default flag values for local packages and extra-deps
 # flags: {}
@@ -66,3 +72,4 @@ extra-deps:
 #
 # Allow a newer minor version of GHC than the snapshot specifies
 # compiler-check: newer-minor
+allow-newer: true

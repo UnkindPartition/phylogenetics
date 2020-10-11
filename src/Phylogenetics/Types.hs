@@ -35,7 +35,7 @@ leaves = \case
 allIds :: Topology -> IntSet.IntSet
 allIds = \case
   Leaf (NodeId i) -> IntSet.singleton i
-  Bin (NodeId i) l r -> IntSet.singleton i <> leaves l <> leaves r
+  Bin (NodeId i) l r -> IntSet.singleton i <> allIds l <> allIds r
 
 addIdsToTopology :: Topology -> Topology
 addIdsToTopology topo0 = evalState (go topo0) 0

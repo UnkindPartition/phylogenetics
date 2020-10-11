@@ -9,6 +9,17 @@ import qualified Numeric.LinearAlgebra.Data as Matrix
 
 import Phylogenetics.Types
 
+-- | The likelihood of a subtree conditional on the state of its root.
+--
+-- If the subtree is a leaf, then it's represented by its character state.
+--
+-- Otherwise, it's the likelihood conditional on the (unobserved) character
+-- state of its root, and is represented as a vector of likelihoods for
+-- each state of its root.
+data ConditionalLikelihood
+  = LeafCL Word8
+  | BinCL (VU.Vector Double)
+
 -- | The full log-likelihood, summed over all sites
 logLikelihood
   :: RateMatrix
@@ -29,16 +40,16 @@ likelihood1
   -> Topology
   -> Double
 likelihood1 rate_mx obs bls site topo =
-  VU.sum (go topo) / (numOfStates rate_mx) where
+  case go topo of
+    LeafCL{} -> 1
+    BinCL ls -> VU.sum ls / numOfStates rate_mx
+  where
   -- Given a (sub)tree topology, return, for each root state,
   -- the probability of observations at the tips
-  go :: Topology -> VU.Vector Double
+  go :: Topology -> ConditionalLikelihood
   go = \case
     Leaf (NodeId node_id) ->
-      let
-        ch :: Word8 -- this leaf's character at the given site
-        ch = (characters obs IntMap.! node_id) `VU.unsafeIndex` site
-      in VU.generate (numOfStates rate_mx) (\i -> fromIntegral . fromEnum $ i == fromIntegral ch)
+      LeafCL $ (characters obs IntMap.! node_id) `VU.unsafeIndex` site
     Bin _ sub1 sub2 ->
       let
         subs :: Tuple2 Topology
@@ -53,23 +64,26 @@ falg
   -> BranchLengths
   -> Tuple2 Topology
     -- ^ the sub-subtrees (the two immediate children of the current subtree)
-  -> Tuple2 (VU.Vector Double)
-    -- ^ likelihood of the sub-subtrees (for each of the 4 values of the character)
-  -> VU.Vector Double
-    -- ^ likelihood of the subtree (for each of the 4 values of the character)
-falg rate_mx bls subs sub_liks = VU.fromList $ do
+  -> Tuple2 ConditionalLikelihood
+    -- ^ likelihoods of the sub-subtrees
+  -> ConditionalLikelihood
+    -- ^ likelihood of the subtree
+falg rate_mx bls subs sub_cls = BinCL . VU.fromList $ do
   -- iterate over the possible characters at the root
   root_c <- [0..numOfStates rate_mx - 1]
   return . product $ do
     -- iterate over the two sub-subtrees (applicative do)
     sub <- subs
-    sub_lik <- sub_liks
+    sub_cl <- sub_cls
     let
       bl = getBranchLength bls $ getNodeId sub
       transition_probs = transitionProbabilities rate_mx bl
-    return . sum $ do
-      -- iterate over the sub-subtree character
-      sub_c <- [0..numOfStates rate_mx - 1]
-      return $
-        VU.unsafeIndex sub_lik (fromIntegral sub_c) *
-        (transition_probs `Matrix.atIndex` (root_c, sub_c))
+    return $
+      case sub_cl of
+        LeafCL sub_c -> transition_probs `Matrix.atIndex` (root_c, fromIntegral sub_c)
+        BinCL sub_liks -> sum $ do
+          -- iterate over the sub-subtree character
+          sub_c <- [0..numOfStates rate_mx - 1]
+          return $
+            VU.unsafeIndex sub_liks (fromIntegral sub_c) *
+            (transition_probs `Matrix.atIndex` (root_c, sub_c))

@@ -114,7 +114,7 @@ main = defaultMain $ testGroup "Tests"
         assertBool
           (printf "Expected %.3f, got %.3f" expected_ll ll)
           (abs (expected_ll - ll) < 1e-10)
-    , testProperty "Checking against naive implmenetation" $ \topo rate_mx ->
+    , testProperty "Checking against naive implementation" $ \topo rate_mx ->
         forAll (branchLengthsGen topo) $ \bls ->
         forAll (observationsGen rate_mx topo) $ \obs ->
           let

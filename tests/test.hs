@@ -4,30 +4,27 @@ import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck hiding ((><), scale)
 import Test.Tasty.ExpectedFailure
 import Text.Printf (printf)
-import qualified Data.IntSet as IntSet
-import qualified Data.IntMap as IntMap
-import qualified Data.Vector.Unboxed as VU
-import Data.Word
-import Control.Monad
 import Numeric.LinearAlgebra
+import qualified Data.IntSet as IntSet
 import Phylogenetics.Types
 import Phylogenetics.Likelihood
+import qualified Phylogenetics.Gen as Gen
 import NaiveLikelihood
 
-rateMatrixGen
-  :: Int -- ^ size, i.e. the number of states
-  -> Gen RateMatrix
-rateMatrixGen size = do
-  rows <- forM [0 .. size - 1] $ \i -> do
-    rates0 <- replicateM (size - 1) (getPositive <$> arbitrary)
-    let rates = map (/ sum rates0) rates0
-    return $ fromList $ take i rates ++ [- 1] ++ drop i rates
-  return $ RateMatrix $ fromRows rows
+qcDistributions :: Gen.BaseDistributions Gen
+qcDistributions = Gen.BaseDistributions
+  { numberOfLeavesInTreeDistribution = frequency $
+      (5,pure 1) : [(i^(2::Integer), pure $ 6-i) | i <- [1..4]]
+  , numberOfLeavesInLeftSubtreeDistribution = \n -> choose (1, n-1)
+  , numberOfSitesDistribution = choose (1, 3)
+  , numberOfCharacterStatesDistribution = choose (2, 4)
+  , characterStateDistribution = \n -> choose (0, n-1)
+  , branchLengthDistribution = getPositive <$> arbitrary
+  , rateDistribution = getPositive <$> arbitrary
+  }
 
 instance Arbitrary RateMatrix where
-  arbitrary = do
-    size <- choose (2, 30)
-    rateMatrixGen size
+  arbitrary = Gen.rateMatrix qcDistributions
   shrink (RateMatrix mx)
     | old_size > 2 =
         let
@@ -43,43 +40,13 @@ instance Arbitrary RateMatrix where
     where old_size = cols mx
 
 instance Arbitrary BranchLength where
-  arbitrary = BranchLength . getPositive <$> arbitrary
-
--- | Generate branch lengths for a given topology
-branchLengthsGen
-  :: Topology
-  -> Gen BranchLengths
-branchLengthsGen topo = do
-  let node_ids = allIds topo
-  fmap BranchLengths . sequence
-    . IntMap.fromList . map (, arbitrary)
-    . IntSet.toList $ node_ids
+  arbitrary = Gen.branchLength qcDistributions
 
 instance Arbitrary Topology where
-  arbitrary = addIdsToTopology <$> frequency
-    [ (1, Bin (NodeId 0) <$> arbitrary <*> arbitrary)
-    , (4, pure $ Leaf $ NodeId 0)
-    ]
+  arbitrary = Gen.topology qcDistributions
   shrink = \case
     Leaf{} -> []
     Bin _ l r -> [l, r]
-
-observationsGen :: RateMatrix -> Topology -> Gen Observations
-observationsGen rate_mx topo = do
-  let
-    leaf_ids = leaves topo
-    m = numOfStates rate_mx
-
-  n <- choose (1, 3) -- number of sites
-
-  let
-    characterAtSite :: Gen (VU.Vector Word8)
-    characterAtSite = VU.fromList <$> vectorOf n (choose (0, m-1))
-
-  fmap (Observations n) . sequence
-    . IntMap.fromList . map (, characterAtSite)
-    . IntSet.toList $ leaf_ids
-
 
 main :: IO ()
 main = defaultMain $ testGroup "Tests"
@@ -114,15 +81,14 @@ main = defaultMain $ testGroup "Tests"
         assertBool
           (printf "Expected %.3f, got %.3f" expected_ll ll)
           (abs (expected_ll - ll) < 1e-10)
-    , testProperty "Checking against naive implementation" $ \topo ->
-        forAll (choose (2, 4)) $ \states ->
-        forAll (rateMatrixGen states) $ \rate_mx ->
-        forAll (branchLengthsGen topo) $ \bls ->
-        forAll (observationsGen rate_mx topo) $ \obs ->
+    , testProperty "Checking against naive implementation" $ \topo rate_mx ->
+        forAll (Gen.branchLengths qcDistributions topo) $ \bls ->
+        forAll (Gen.observations qcDistributions rate_mx topo) $ \obs ->
           let
             naive_ll = log $ naiveLikelihood rate_mx obs bls topo
             ll       = logLikelihood         rate_mx obs bls topo
           in
+            label (show (IntSet.size $ leaves topo) ++ " leaves") $
             counterexample (printf "Naive LL: %.3f, efficient: %.3f" naive_ll ll) $
               (abs (naive_ll - ll) < 1e-10)
     ]

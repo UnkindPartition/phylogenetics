@@ -46,7 +46,6 @@ test-suite test
     , hmatrix
     , containers
     , vector
-    , foldl
   default-extensions:  ScopedTypeVariables, RecordWildCards, NamedFieldPuns,
                        NumDecimals, ViewPatterns, BangPatterns, DerivingStrategies,
                        FlexibleInstances, MultiParamTypeClasses,

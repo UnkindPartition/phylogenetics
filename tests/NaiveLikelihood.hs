@@ -5,7 +5,6 @@ import qualified Data.Vector.Unboxed as VU
 import Data.Word
 import Numeric.LinearAlgebra
 import Control.Monad
-import qualified Control.Foldl as L
 import Phylogenetics.Types
 
 -- | Add all possible values for missing observations
@@ -38,9 +37,14 @@ naiveLikelihood, fullLikelihood
 naiveLikelihood rate_mx obs0 bls topo =
   let
     full_obs = fillObservations (numOfStates rate_mx) topo obs0
-    average = (/) <$> L.sum <*> L.genericLength
+    factor =
+      -- unless we have a single leaf, we need to multiply by the
+      -- probability of observing the tree root
+      case topo of
+        Leaf{} -> 1
+        Bin{} -> (1 / numOfStates rate_mx) ^ (numOfSites obs0)
   in
-    L.fold average
+    factor * sum
       [ fullLikelihood rate_mx obs bls topo
       | obs <- full_obs
       ]

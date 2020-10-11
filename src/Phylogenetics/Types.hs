@@ -1,9 +1,11 @@
 module Phylogenetics.Types where
 
 import qualified Data.IntMap.Strict as IntMap
+import qualified Data.IntSet as IntSet
 import qualified Data.Vector.Unboxed as VU
 import Data.Word
-import Numeric.LinearAlgebra
+import Control.Monad.State
+import Numeric.LinearAlgebra hiding ((<>))
 
 -- | A node in a phylogenetic tree
 newtype NodeId = NodeId Int
@@ -23,6 +25,28 @@ getNodeId :: Topology -> NodeId
 getNodeId = \case
   Leaf i -> i
   Bin i _ _ -> i
+
+-- | Return a set of all leaf ids in a topology
+leaves :: Topology -> IntSet.IntSet
+leaves = \case
+  Leaf (NodeId i) -> IntSet.singleton i
+  Bin _ l r -> leaves l <> leaves r
+
+allIds :: Topology -> IntSet.IntSet
+allIds = \case
+  Leaf (NodeId i) -> IntSet.singleton i
+  Bin (NodeId i) l r -> IntSet.singleton i <> leaves l <> leaves r
+
+addIdsToTopology :: Topology -> Topology
+addIdsToTopology topo0 = evalState (go topo0) 0
+  where
+    go = \case
+      Leaf _ -> Leaf <$> next
+      Bin _ l r -> Bin <$> next <*> go l <*> go r
+    next = do
+      i <- get
+      put $! i+1
+      return (NodeId i)
 
 -- | The branch lengths of a phylogenetic tree.
 --
@@ -48,7 +72,7 @@ data RateMatrix = RateMatrix (Matrix Double)
   deriving Show
 
 -- | Return the number of states of a character (e.g. 4 for DNA)
-numOfStates :: Integral a => RateMatrix -> a
+numOfStates :: Num a => RateMatrix -> a
 numOfStates (RateMatrix mx) = fromIntegral $ rows mx
 
 -- | Calculate the transition probabilities from one nucleotide to another

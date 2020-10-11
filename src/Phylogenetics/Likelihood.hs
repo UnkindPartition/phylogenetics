@@ -29,7 +29,7 @@ likelihood1
   -> Topology
   -> Double
 likelihood1 rate_mx obs bls site topo =
-  VU.sum (go topo) / fromIntegral (numOfStates rate_mx) where
+  VU.sum (go topo) / (numOfStates rate_mx) where
   -- Given a (sub)tree topology, return, for each root state,
   -- the probability of observations at the tips
   go :: Topology -> VU.Vector Double

@@ -12,12 +12,6 @@ import Phylogenetics.Types
 
 -- | The likelihood of a subtree conditional on the state of its root
 -- (a.k.a. the «partial likelihood»).
---
--- If the subtree is a leaf, then it's represented by its character state.
---
--- Otherwise, it's the likelihood conditional on the (unobserved) character
--- state of its root, and is represented as a vector of likelihoods for
--- each state of its root.
 newtype PostOrder = PostOrder { getPostOrder :: Matrix.Vector Double }
 
 -- | The full log-likelihood, summed over all sites
@@ -79,3 +73,33 @@ calculatePostOrder rate_mx bls subs sub_post_orders =
       pure $ transition_probs Matrix.#> sub_post_order
   in
     PostOrder $ l * r
+
+newtype PreOrder = PreOrder { getPreOrder :: Matrix.Vector Double }
+
+swap :: Tuple2 a -> Tuple2 a
+swap (Tuple2 (a,b)) = Tuple2 (b,a)
+
+calculatePreOrder
+  :: RateMatrix
+  -> BranchLengths
+  -> IntMap.IntMap PostOrder
+  -> PreOrder -- ^ the pre-order of the parent tree
+  -> Tuple2 Topology -- ^ the subtrees
+  -> Tuple2 PreOrder -- ^ the pre-order traversals of the subtrees
+calculatePreOrder rate_mx bls postorders (PreOrder parent_preorder) subs =
+  let
+    both_transition_probs = do
+      sub <- subs
+      let bl = getBranchLength bls $ getNodeId sub
+      pure $ transitionProbabilities rate_mx bl
+  in do
+    this_transition_probs <- both_transition_probs
+    sibling_transition_probs <- swap both_transition_probs
+    sibling <- swap subs
+    let
+      NodeId sibling_id = getNodeId sibling
+      PostOrder sibling_postorder = postorders IntMap.! sibling_id
+    pure . PreOrder $
+      Matrix.tr this_transition_probs Matrix.#>
+      (parent_preorder *
+        (sibling_transition_probs Matrix.#> sibling_postorder))

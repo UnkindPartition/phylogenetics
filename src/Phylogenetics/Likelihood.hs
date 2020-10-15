@@ -9,14 +9,15 @@ import qualified Numeric.LinearAlgebra.Data as Matrix
 
 import Phylogenetics.Types
 
--- | The likelihood of a subtree conditional on the state of its root.
+-- | The likelihood of a subtree conditional on the state of its root
+-- (a.k.a. the «partial likelihood»).
 --
 -- If the subtree is a leaf, then it's represented by its character state.
 --
 -- Otherwise, it's the likelihood conditional on the (unobserved) character
 -- state of its root, and is represented as a vector of likelihoods for
 -- each state of its root.
-data ConditionalLikelihood
+data PostOrder
   = LeafCL Word8
   | BinCL (VU.Vector Double)
 
@@ -46,7 +47,7 @@ likelihood1 rate_mx obs bls site topo =
   where
   -- Given a (sub)tree topology, return, for each root state,
   -- the probability of observations at the tips
-  go :: Topology -> ConditionalLikelihood
+  go :: Topology -> PostOrder
   go = \case
     Leaf (NodeId node_id) ->
       LeafCL $ (characters obs IntMap.! node_id) `VU.unsafeIndex` site
@@ -55,24 +56,23 @@ likelihood1 rate_mx obs bls site topo =
         subs :: Tuple2 Topology
         subs = tuple2 sub1 sub2
       in
-        falg rate_mx bls subs (go <$> subs)
+        calculatePostOrder rate_mx bls subs (go <$> subs)
 
--- | The F-algebra that, given a likelihoods of subtrees calculates the
--- likelihood of the tree
-falg
+-- | Calculate the post-order traversal of a tree given its values at the subtrees
+calculatePostOrder
   :: RateMatrix
   -> BranchLengths
   -> Tuple2 Topology
-    -- ^ the sub-subtrees (the two immediate children of the current subtree)
-  -> Tuple2 ConditionalLikelihood
-    -- ^ likelihoods of the sub-subtrees
-  -> ConditionalLikelihood
+    -- ^ the subtrees
+  -> Tuple2 PostOrder
+    -- ^ likelihoods of the subtrees
+  -> PostOrder
     -- ^ likelihood of the subtree
-falg rate_mx bls subs sub_cls = BinCL . VU.fromList $ do
+calculatePostOrder rate_mx bls subs sub_cls = BinCL . VU.fromList $ do
   -- iterate over the possible characters at the root
   root_c <- [0..numOfStates rate_mx - 1]
   return . product $ do
-    -- iterate over the two sub-subtrees (applicative do)
+    -- iterate over the two subtrees (applicative do)
     sub <- subs
     sub_cl <- sub_cls
     let
@@ -82,7 +82,7 @@ falg rate_mx bls subs sub_cls = BinCL . VU.fromList $ do
       case sub_cl of
         LeafCL sub_c -> transition_probs `Matrix.atIndex` (root_c, fromIntegral sub_c)
         BinCL sub_liks -> sum $ do
-          -- iterate over the sub-subtree character
+          -- iterate over the subtree character
           sub_c <- [0..numOfStates rate_mx - 1]
           return $
             VU.unsafeIndex sub_liks (fromIntegral sub_c) *

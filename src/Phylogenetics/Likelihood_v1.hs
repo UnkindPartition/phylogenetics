@@ -1,14 +1,13 @@
 -- | Calculate the likelihood of the tree given the data
 module Phylogenetics.Likelihood_v1 where
 
-import qualified Data.IntMap.Strict as IntMap
 import qualified Data.Vector.Unboxed as VU
 import Data.Word
 import Data.Tuple.Homogenous
 import qualified Numeric.LinearAlgebra.Data as Matrix
 import Numeric.Log as Log
 
-import Phylogenetics.Types
+import Phylogenetics.Types as Phylo
 
 -- | The likelihood of a subtree conditional on the state of its root
 -- (a.k.a. the «partial likelihood»).
@@ -50,8 +49,8 @@ likelihood1 rate_mx obs bls site topo =
   -- the probability of observations at the tips
   go :: Topology -> PostOrder
   go = \case
-    Leaf (NodeId node_id) ->
-      LeafCL $ (characters obs IntMap.! node_id) `VU.unsafeIndex` site
+    Leaf node_id ->
+      LeafCL $ (characters obs ! node_id) `VU.unsafeIndex` site
     Bin _ sub1 sub2 ->
       let
         subs :: Tuple2 Topology
@@ -77,7 +76,7 @@ calculatePostOrder rate_mx bls subs sub_cls = BinCL . VU.fromList $ do
     sub <- subs
     sub_cl <- sub_cls
     let
-      bl = getBranchLength bls $ getNodeId sub
+      bl = bls ! getNodeId sub
       transition_probs = transitionProbabilities rate_mx bl
     return $
       case sub_cl of

@@ -21,9 +21,9 @@ library
                        GeneralizedNewtypeDeriving, RankNTypes, OverloadedLabels,
                        TemplateHaskell, DataKinds, TypeFamilies,
                        UndecidableInstances, DeriveFunctor, DeriveFoldable,
-                       DeriveTraversable, DeriveAnyClass, DeriveGeneric,
+                       DeriveTraversable, DeriveGeneric,
                        OverloadedStrings, MultiWayIf, LambdaCase,
-                       FlexibleContexts, TupleSections
+                       FlexibleContexts, TupleSections, TypeApplications
 
 test-suite test
   default-language:
@@ -57,7 +57,7 @@ test-suite test
                        GeneralizedNewtypeDeriving, RankNTypes, OverloadedLabels,
                        TemplateHaskell, DataKinds, TypeFamilies,
                        UndecidableInstances, DeriveFunctor, DeriveFoldable,
-                       DeriveTraversable, DeriveAnyClass, DeriveGeneric,
+                       DeriveTraversable, DeriveGeneric,
                        OverloadedStrings, MultiWayIf, LambdaCase,
                        FlexibleContexts, TupleSections
 
@@ -83,6 +83,6 @@ benchmark bench
                        GeneralizedNewtypeDeriving, RankNTypes, OverloadedLabels,
                        TemplateHaskell, DataKinds, TypeFamilies,
                        UndecidableInstances, DeriveFunctor, DeriveFoldable,
-                       DeriveTraversable, DeriveAnyClass, DeriveGeneric,
+                       DeriveTraversable, DeriveGeneric,
                        OverloadedStrings, MultiWayIf, LambdaCase,
                        FlexibleContexts, TupleSections

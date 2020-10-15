@@ -5,10 +5,9 @@ import Test.Tasty.QuickCheck hiding ((><), scale)
 import Test.Tasty.ExpectedFailure
 import Text.Printf (printf)
 import Data.Tuple.Homogenous
-import Numeric.LinearAlgebra
+import Numeric.LinearAlgebra as Matrix
 import qualified Numeric.Log as Log
-import qualified Data.IntSet as IntSet
-import Phylogenetics.Types
+import Phylogenetics.Types as Phylo
 import qualified Phylogenetics.Likelihood_v1 as V1
 import qualified Phylogenetics.Likelihood_v2 as V2
 import qualified Phylogenetics.Gen as Gen
@@ -67,20 +66,20 @@ main = defaultMain $ testGroup "Tests"
           rm = (2><2) [-1, 1, 1, -1]
           -- Tree: 1 -> 0, 1 -> 2
           topo = Bin (NodeId 1) (Leaf (NodeId 0)) (Leaf (NodeId 2))
-          bls = BranchLengths
-            [ (0, 3.0)
-            , (2, 5.0)
+          bls =
+            [ (NodeId 0, 3.0)
+            , (NodeId 2, 5.0)
             ]
           obs = Observations 1
-            [ (0, [1])
-            , (2, [0])
+            [ (NodeId 0, [1])
+            , (NodeId 2, [0])
             ]
           ll = Log.ln $ V1.logLikelihood (RateMatrix rm) obs bls topo
           tp0 = expm (scale 3.0 rm)
           tp2 = expm (scale 5.0 rm)
           expected_ll = log $
-            0.5 * (tp0 ! 0 ! 1) * (tp2 ! 0 ! 0) +
-            0.5 * (tp0 ! 1 ! 1) * (tp2 ! 1 ! 0)
+            0.5 * (tp0 Matrix.! 0 Matrix.! 1) * (tp2 Matrix.! 0 Matrix.! 0) +
+            0.5 * (tp0 Matrix.! 1 Matrix.! 1) * (tp2 Matrix.! 1 Matrix.! 0)
         assertBool
           (printf "Expected %.3f, got %.3f" expected_ll ll)
           (abs (expected_ll - ll) < 1e-10)
@@ -109,7 +108,7 @@ testLikelihoodCalculation ll_fns = property $ \topo rate_mx ->
         ll_fn <- ll_fns
         pure . Log.ln $ ll_fn rate_mx obs bls topo
     in
-      label (show (IntSet.size $ leaves topo) ++ " leaves") $
+      label (show (Phylo.size $ leaves topo) ++ " leaves") $
       counterexample (printf "First LL: %.3f, second LL: %.3f" ll1 ll2) $
         (abs (ll1 - ll2) < 1e-10)
 

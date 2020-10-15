@@ -7,13 +7,11 @@
 module Phylogenetics.Gen where
 
 import Data.Word
-import qualified Data.IntSet as IntSet
-import qualified Data.IntMap as IntMap
 import qualified Data.Vector.Unboxed as VU
-import Numeric.LinearAlgebra (fromList, fromRows)
+import Numeric.LinearAlgebra as Matrix (fromList, fromRows)
 import Control.Monad
 
-import Phylogenetics.Types
+import Phylogenetics.Types as Phylo hiding (size)
 
 data BaseDistributions m = BaseDistributions
   { numberOfLeavesInTreeDistribution :: m Int
@@ -67,11 +65,7 @@ branchLengths
   => BaseDistributions m
   -> Topology
   -> m BranchLengths
-branchLengths bd topo = do
-  let node_ids = allIds topo
-  fmap BranchLengths . sequence
-    . IntMap.fromList . map (, branchLength bd)
-    . IntSet.toList $ node_ids
+branchLengths bd = traverse (const $ branchLength bd) . allIds
 
 observations
   :: forall m . Monad m
@@ -90,9 +84,7 @@ observations BaseDistributions{..} rate_mx topo = do
     characterAtSite :: m (VU.Vector Word8)
     characterAtSite = VU.fromList <$> replicateM n (characterStateDistribution m)
 
-  fmap (Observations n) . sequence
-    . IntMap.fromList . map (, characterAtSite)
-    . IntSet.toList $ leaf_ids
+  fmap (Observations n) . traverse (const characterAtSite) $ leaf_ids
 
 rateMatrix
   :: forall m . Monad m
@@ -103,5 +95,5 @@ rateMatrix BaseDistributions{..} = do
   rows <- forM [0 .. size - 1] $ \i -> do
     rates0 <- replicateM (size - 1) rateDistribution
     let rates = map (/ sum rates0) rates0
-    return $ fromList $ take i rates ++ [- 1] ++ drop i rates
+    return $ Matrix.fromList $ take i rates ++ [- 1] ++ drop i rates
   return $ RateMatrix $ fromRows rows

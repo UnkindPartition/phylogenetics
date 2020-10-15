@@ -1,11 +1,13 @@
 module Phylogenetics.Types where
 
 import qualified Data.IntMap.Strict as IntMap
-import qualified Data.IntSet as IntSet
 import qualified Data.Vector.Unboxed as VU
 import Data.Word
 import Control.Monad.State
-import Numeric.LinearAlgebra hiding ((<>))
+import Numeric.LinearAlgebra hiding ((<>), fromList)
+import Data.Coerce
+import GHC.Stack
+import GHC.Exts as Exts
 
 -- | A node in a phylogenetic tree
 newtype NodeId = NodeId Int
@@ -27,15 +29,15 @@ getNodeId = \case
   Bin i _ _ -> i
 
 -- | Return a set of all leaf ids in a topology
-leaves :: Topology -> IntSet.IntSet
+leaves :: Topology -> NodeMap ()
 leaves = \case
-  Leaf (NodeId i) -> IntSet.singleton i
+  Leaf leaf_id -> singleton leaf_id ()
   Bin _ l r -> leaves l <> leaves r
 
-allIds :: Topology -> IntSet.IntSet
+allIds :: Topology -> NodeMap ()
 allIds = \case
-  Leaf (NodeId i) -> IntSet.singleton i
-  Bin (NodeId i) l r -> IntSet.singleton i <> allIds l <> allIds r
+  Leaf i -> singleton i ()
+  Bin i l r -> singleton i () <> allIds l <> allIds r
 
 addIdsToTopology :: Topology -> Topology
 addIdsToTopology topo0 = evalState (go topo0) 0
@@ -52,18 +54,13 @@ addIdsToTopology topo0 = evalState (go topo0) 0
 --
 -- The map is from the 'NodeId' to the length of a branch leading to that
 -- 'NodeId'.
-newtype BranchLengths = BranchLengths (IntMap.IntMap BranchLength)
-  deriving Show
-
--- | Extract the branch length leading to a given node
-getBranchLength :: BranchLengths -> NodeId -> BranchLength
-getBranchLength (BranchLengths bl) (NodeId node_id) = bl IntMap.! node_id
+type BranchLengths = NodeMap BranchLength
 
 -- | A set of observed characters per site. Character states are encoded by
 -- integers from 0 to @'numOfStates' - 1@.
 data Observations = Observations
   { numOfSites :: !Int
-  , characters :: !(IntMap.IntMap (VU.Vector Word8))
+  , characters :: !(NodeMap (VU.Vector Word8))
   }
   deriving Show
 
@@ -81,3 +78,33 @@ transitionProbabilities
   -> BranchLength
   -> Matrix Double
 transitionProbabilities (RateMatrix q) (BranchLength t) = expm (scale t q)
+
+----------------------------------------------------------------------
+--                              NodeMap
+----------------------------------------------------------------------
+
+newtype NodeMap a = NodeMap (IntMap.IntMap a)
+  deriving (Semigroup, Monoid, Show, Functor, Foldable, Traversable)
+
+instance IsList (NodeMap a) where
+  type Item (NodeMap a) = (NodeId, a)
+  fromList = coerce (fromList @(IntMap.IntMap a))
+  toList = coerce (Exts.toList @(IntMap.IntMap a))
+
+lookup :: forall a . NodeId -> NodeMap a -> Maybe a
+lookup = coerce (IntMap.lookup @a)
+
+(!) :: forall a . HasCallStack => NodeMap a -> NodeId -> a
+(!) = coerce ((IntMap.!) @a)
+
+insert :: forall a . NodeId -> a -> NodeMap a -> NodeMap a
+insert = coerce (IntMap.insert @a)
+
+singleton :: forall a . NodeId -> a -> NodeMap a
+singleton = coerce (IntMap.singleton @a)
+
+member :: forall a . NodeId -> NodeMap a -> Bool
+member = coerce (IntMap.member @a)
+
+size :: forall a . NodeMap a -> Int
+size = coerce (IntMap.size @a)

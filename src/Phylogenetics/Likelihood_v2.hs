@@ -2,12 +2,12 @@
 -- and matrix operations.
 module Phylogenetics.Likelihood_v2 where
 
-import qualified Data.IntMap.Strict as IntMap
 import qualified Data.Vector.Unboxed as VU
 import qualified Data.Vector.Storable as VS
 import Data.Tuple.Homogenous
 import qualified Numeric.LinearAlgebra as Matrix
 import Numeric.Log as Log
+import Control.Monad.State
 
 import Phylogenetics.Types
 
@@ -43,10 +43,7 @@ likelihood1 rate_mx obs bls site topo =
   -- the probability of observations at the tips
   go :: Topology -> PostOrder
   go = \case
-    Leaf (NodeId node_id) ->
-      let ch = (characters obs IntMap.! node_id) `VU.unsafeIndex` site
-      in PostOrder $ VS.generate (numOfStates rate_mx) $
-          \i -> if i == fromIntegral ch then 1 else 0
+    Leaf leaf_id -> calculateLeafPostOrder rate_mx obs bls site leaf_id
     Bin _ sub1 sub2 ->
       let
         subs :: Tuple2 Topology
@@ -69,7 +66,7 @@ calculatePostOrder rate_mx bls subs sub_post_orders =
       sub <- subs
       PostOrder sub_post_order <- sub_post_orders
       let
-        bl = getBranchLength bls $ getNodeId sub
+        bl = bls ! getNodeId sub
         transition_probs = transitionProbabilities rate_mx bl
       pure $ transition_probs Matrix.#> sub_post_order
   in
@@ -83,7 +80,7 @@ swap (Tuple2 (a,b)) = Tuple2 (b,a)
 calculatePreOrder
   :: RateMatrix
   -> BranchLengths
-  -> IntMap.IntMap PostOrder
+  -> NodeMap PostOrder
   -> PreOrder -- ^ the pre-order of the parent tree
   -> Tuple2 Topology -- ^ the subtrees
   -> Tuple2 PreOrder -- ^ the pre-order traversals of the subtrees
@@ -91,15 +88,14 @@ calculatePreOrder rate_mx bls postorders (PreOrder parent_preorder) subs =
   let
     both_transition_probs = do
       sub <- subs
-      let bl = getBranchLength bls $ getNodeId sub
+      let bl = bls ! getNodeId sub
       pure $ transitionProbabilities rate_mx bl
   in do
     this_transition_probs <- both_transition_probs
     sibling_transition_probs <- swap both_transition_probs
     sibling <- swap subs
     let
-      NodeId sibling_id = getNodeId sibling
-      PostOrder sibling_postorder = postorders IntMap.! sibling_id
+      PostOrder sibling_postorder = postorders ! (getNodeId sibling)
     pure . PreOrder $
       Matrix.tr this_transition_probs Matrix.#>
       (parent_preorder *

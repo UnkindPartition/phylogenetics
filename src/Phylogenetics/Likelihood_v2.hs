@@ -18,7 +18,7 @@ import Phylogenetics.Types
 -- Otherwise, it's the likelihood conditional on the (unobserved) character
 -- state of its root, and is represented as a vector of likelihoods for
 -- each state of its root.
-type PostOrder = Matrix.Vector Double
+newtype PostOrder = PostOrder { getPostOrder :: Matrix.Vector Double }
 
 -- | The full log-likelihood, summed over all sites
 logLikelihood
@@ -42,7 +42,7 @@ likelihood1
 likelihood1 rate_mx obs bls site topo =
   case topo of
     Leaf {} -> 1
-    Bin {} -> VS.sum (go topo) / numOfStates rate_mx
+    Bin {} -> (VS.sum . getPostOrder) (go topo) / numOfStates rate_mx
   where
   -- Given a (sub)tree topology, return, for each root state,
   -- the probability of observations at the tips
@@ -50,7 +50,8 @@ likelihood1 rate_mx obs bls site topo =
   go = \case
     Leaf (NodeId node_id) ->
       let ch = (characters obs IntMap.! node_id) `VU.unsafeIndex` site
-      in VS.generate (numOfStates rate_mx) $ \i -> if i == fromIntegral ch then 1 else 0
+      in PostOrder $ VS.generate (numOfStates rate_mx) $
+          \i -> if i == fromIntegral ch then 1 else 0
     Bin _ sub1 sub2 ->
       let
         subs :: Tuple2 Topology
@@ -67,14 +68,14 @@ calculatePostOrder
     -- ^ likelihoods of the subtrees
   -> PostOrder
     -- ^ likelihood of the subtree
-calculatePostOrder rate_mx bls subs sub_cls =
+calculatePostOrder rate_mx bls subs sub_post_orders =
   let
     Tuple2 (l,r) = do
       sub <- subs
-      sub_cl <- sub_cls
+      PostOrder sub_post_order <- sub_post_orders
       let
         bl = getBranchLength bls $ getNodeId sub
         transition_probs = transitionProbabilities rate_mx bl
-      pure $ transition_probs Matrix.#> sub_cl
+      pure $ transition_probs Matrix.#> sub_post_order
   in
-    l * r
+    PostOrder $ l * r

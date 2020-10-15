@@ -6,6 +6,7 @@ import Test.Tasty.ExpectedFailure
 import Text.Printf (printf)
 import Data.Tuple.Homogenous
 import Numeric.LinearAlgebra
+import qualified Numeric.Log as Log
 import qualified Data.IntSet as IntSet
 import Phylogenetics.Types
 import qualified Phylogenetics.Likelihood_v1 as V1
@@ -74,7 +75,7 @@ main = defaultMain $ testGroup "Tests"
             [ (0, [1])
             , (2, [0])
             ]
-          ll = V1.logLikelihood (RateMatrix rm) obs bls topo
+          ll = Log.ln $ V1.logLikelihood (RateMatrix rm) obs bls topo
           tp0 = expm (scale 3.0 rm)
           tp2 = expm (scale 5.0 rm)
           expected_ll = log $
@@ -85,7 +86,7 @@ main = defaultMain $ testGroup "Tests"
           (abs (expected_ll - ll) < 1e-10)
     , testProperty "naiveLikelihood vs V1.logLikelihood" $
         testLikelihoodCalculation $ Tuple2
-          ( \rate_mx obs bls topo -> log $ naiveLikelihood rate_mx obs bls topo
+          ( \rate_mx obs bls topo -> realToFrac $ naiveLikelihood rate_mx obs bls topo
           , V1.logLikelihood
           )
     , testProperty "V1.logLikelihood vs V2.logLikelihood" $
@@ -97,7 +98,7 @@ main = defaultMain $ testGroup "Tests"
   ]
 
 testLikelihoodCalculation
-  :: Tuple2 (RateMatrix -> Observations -> BranchLengths -> Topology -> Double)
+  :: Tuple2 (RateMatrix -> Observations -> BranchLengths -> Topology -> Log.Log Double)
      -- ^ the two log-likelihood calculation functins
   -> Property
 testLikelihoodCalculation ll_fns = property $ \topo rate_mx ->
@@ -106,7 +107,7 @@ testLikelihoodCalculation ll_fns = property $ \topo rate_mx ->
     let
       Tuple2 (ll1, ll2) = do
         ll_fn <- ll_fns
-        pure $ ll_fn rate_mx obs bls topo
+        pure . Log.ln $ ll_fn rate_mx obs bls topo
     in
       label (show (IntSet.size $ leaves topo) ++ " leaves") $
       counterexample (printf "First LL: %.3f, second LL: %.3f" ll1 ll2) $

@@ -7,6 +7,7 @@ import qualified Data.Vector.Unboxed as VU
 import qualified Data.Vector.Storable as VS
 import Data.Tuple.Homogenous
 import qualified Numeric.LinearAlgebra as Matrix
+import Numeric.Log as Log
 
 import Phylogenetics.Types
 
@@ -20,10 +21,10 @@ logLikelihood
   -> Observations
   -> BranchLengths
   -> Topology
-  -> Double
-logLikelihood rate_mx obs bls tree = sum $ do
+  -> Log Double
+logLikelihood rate_mx obs bls tree = product $ do
   site <- [0 .. numOfSites obs - 1]
-  return . log $ likelihood1 rate_mx obs bls site tree
+  return . realToFrac $ likelihood1 rate_mx obs bls site tree
 
 -- | Likelihood for a single site
 likelihood1

@@ -6,6 +6,7 @@ import qualified Data.Vector.Unboxed as VU
 import Data.Word
 import Data.Tuple.Homogenous
 import qualified Numeric.LinearAlgebra.Data as Matrix
+import Numeric.Log as Log
 
 import Phylogenetics.Types
 
@@ -27,10 +28,10 @@ logLikelihood
   -> Observations
   -> BranchLengths
   -> Topology
-  -> Double
-logLikelihood rate_mx obs bls tree = sum $ do
+  -> Log Double
+logLikelihood rate_mx obs bls tree = product $ do
   site <- [0 .. numOfSites obs - 1]
-  return . log $ likelihood1 rate_mx obs bls site tree
+  return . realToFrac $ likelihood1 rate_mx obs bls site tree
 
 -- | Likelihood for a single site
 likelihood1
@@ -81,7 +82,7 @@ calculatePostOrder rate_mx bls subs sub_cls = BinCL . VU.fromList $ do
     return $
       case sub_cl of
         LeafCL sub_c -> transition_probs `Matrix.atIndex` (root_c, fromIntegral sub_c)
-        BinCL sub_liks -> sum $ do
+        BinCL sub_liks -> Prelude.sum $ do
           -- iterate over the subtree character
           sub_c <- [0..numOfStates rate_mx - 1]
           return $

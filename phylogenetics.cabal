@@ -9,7 +9,8 @@ library
   exposed-modules:
     Phylogenetics.Types
     Phylogenetics.Gen
-    Phylogenetics.Likelihood
+    Phylogenetics.Likelihood_v1
+    Phylogenetics.Likelihood_v2
   build-depends:       base, vector, random-fu, ad, containers, mtl,
                        tuples-homogenous-h98, hmatrix
   ghc-options:         -Wall
@@ -36,7 +37,7 @@ test-suite test
   other-modules:
     NaiveLikelihood
   ghc-options:
-    -Wall -Wno-orphans -Wno-name-shadowing
+    -Wall -Wno-orphans -Wno-name-shadowing -threaded
   build-depends:
       base >= 4
     , phylogenetics
@@ -48,6 +49,7 @@ test-suite test
     , hmatrix
     , containers
     , vector
+    , tuples-homogenous-h98
   default-extensions:  ScopedTypeVariables, RecordWildCards, NamedFieldPuns,
                        NumDecimals, ViewPatterns, BangPatterns, DerivingStrategies,
                        FlexibleInstances, MultiParamTypeClasses,

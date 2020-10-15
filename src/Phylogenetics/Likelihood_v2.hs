@@ -43,7 +43,7 @@ likelihood1 rate_mx obs bls site topo =
   -- the probability of observations at the tips
   go :: Topology -> PostOrder
   go = \case
-    Leaf leaf_id -> calculateLeafPostOrder rate_mx obs bls site leaf_id
+    Leaf leaf_id -> calculateLeafPostOrder rate_mx obs site leaf_id
     Bin _ sub1 sub2 ->
       let
         subs :: Tuple2 Topology
@@ -100,3 +100,50 @@ calculatePreOrder rate_mx bls postorders (PreOrder parent_preorder) subs =
       Matrix.tr this_transition_probs Matrix.#>
       (parent_preorder *
         (sibling_transition_probs Matrix.#> sibling_postorder))
+
+-- | Calculate the partial derivative of the log-likelihood w.r.t. the
+-- branch length of a given node
+calculatePartialDerivative
+  :: RateMatrix
+  -> Log Double -- ^ the log-likelihood of the whole tree
+  -> PreOrder -- ^ the pre-order traversal of the node
+  -> PostOrder -- ^ the post-order traversal of the node
+  -> Double -- ^ the partial derivative of the log-likelihood
+calculatePartialDerivative (RateMatrix capitalQ) total_ll (PreOrder q) (PostOrder p) =
+  (q Matrix.<.> (capitalQ Matrix.#> p)) / realToFrac total_ll
+
+calculateLeafPostOrder
+  :: RateMatrix
+  -> Observations
+  -> Int -- ^ the index of the site
+  -> NodeId -- ^ the id of the leaf
+  -> PostOrder
+calculateLeafPostOrder rate_mx obs site leaf_id =
+  let ch = (characters obs ! leaf_id) `VU.unsafeIndex` site
+  in PostOrder $ VS.generate (numOfStates rate_mx) $
+      \i -> if i == fromIntegral ch then 1 else 0
+
+-- | Calculate all post-order traversals for a given site
+calculateAllPostOrders
+  :: RateMatrix
+  -> Observations
+  -> BranchLengths
+  -> Int -- ^ the index of the site
+  -> Topology
+    -- ^ the tree
+  -> NodeMap PostOrder
+calculateAllPostOrders rate_mx obs bls site = flip execState mempty . go
+  where
+    go :: MonadState (NodeMap PostOrder) m => Topology -> m PostOrder
+    go topo = do
+      po <- case topo of
+        Leaf leaf_id -> do
+          pure $ calculateLeafPostOrder rate_mx obs site leaf_id
+        Bin _ sub1 sub2 -> do
+          let
+            subs :: Tuple2 Topology
+            subs = tuple2 sub1 sub2
+          sub_post_orders <- traverse go subs
+          pure $ calculatePostOrder rate_mx bls subs sub_post_orders
+      modify' $ insert (getNodeId topo) po
+      return po

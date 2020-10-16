@@ -6,7 +6,6 @@ import qualified Data.Vector.Unboxed as VU
 import qualified Data.Vector.Storable as VS
 import Data.Tuple.Homogenous
 import qualified Numeric.LinearAlgebra as Matrix
-import Numeric.Log as Log
 import Control.Monad.State
 import Data.List (foldl')
 
@@ -22,10 +21,10 @@ logLikelihood
   -> Observations
   -> BranchLengths
   -> Topology
-  -> Log Double
-logLikelihood rate_mx obs bls tree = product $ do
+  -> Double
+logLikelihood rate_mx obs bls tree = sum $ do
   site <- [0 .. numOfSites obs - 1]
-  return . realToFrac $ likelihood1 rate_mx obs bls site tree
+  return . log $ likelihood1 rate_mx obs bls site tree
 
 -- | Likelihood for a single site
 likelihood1
@@ -59,9 +58,9 @@ gradient
   -> Observations
   -> BranchLengths
   -> Topology
-  -> (Log Double, NodeMap Double) -- ^ log-likelihood and its gradient
+  -> (Double, NodeMap Double) -- ^ log-likelihood and its gradient
 gradient rate_mx obs bls tree =
-  foldl' (\(l,g) (l1,g1) -> ((,) $! (l*l1)) $! (g+g1)) (Exp 0, mempty) $ do
+  foldl' (\(l,g) (l1,g1) -> ((,) $! (l*l1)) $! (g+g1)) (0, mempty) $ do
     site <- [0 .. numOfSites obs - 1]
     return $ gradient1 rate_mx obs bls site tree
 
@@ -72,7 +71,7 @@ gradient1
   -> BranchLengths
   -> Int -- ^ the index of the site
   -> Topology
-  -> (Log Double, NodeMap Double)
+  -> (Double, NodeMap Double)
 gradient1 rate_mx obs bls site topo = undefined
 
 calculatePostOrder
@@ -129,12 +128,12 @@ calculatePreOrder rate_mx bls postorders (PreOrder parent_preorder) subs =
 -- branch length of a given node
 calculatePartialDerivative
   :: RateMatrix
-  -> Log Double -- ^ the log-likelihood of the whole tree
+  -> Double -- ^ the log-likelihood of the whole tree
   -> PreOrder -- ^ the pre-order traversal of the node
   -> PostOrder -- ^ the post-order traversal of the node
   -> Double -- ^ the partial derivative of the log-likelihood
 calculatePartialDerivative (RateMatrix capitalQ) total_ll (PreOrder q) (PostOrder p) =
-  (q Matrix.<.> (capitalQ Matrix.#> p)) / realToFrac total_ll
+  (q Matrix.<.> (capitalQ Matrix.#> p)) / exp total_ll
 
 calculateLeafPostOrder
   :: RateMatrix

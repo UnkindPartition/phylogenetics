@@ -72,7 +72,34 @@ gradient1
   -> Int -- ^ the index of the site
   -> Topology
   -> (Double, NodeMap Double)
-gradient1 rate_mx obs bls site topo = undefined
+gradient1 rate_mx obs bls site topo =
+  let
+    post_orders = calculateAllPostOrders rate_mx obs bls site topo
+    root_pre_order = PreOrder $ VS.replicate (numOfStates rate_mx) $
+      1 / (numOfStates rate_mx)
+    total_log_likelihood =
+      getPreOrder root_pre_order Matrix.<.>
+      (getPostOrder $ post_orders ! getNodeId topo)
+
+    go :: MonadState (NodeMap Double) m => PreOrder -> Topology -> m ()
+    go pre_order = \case
+      Leaf {} -> pure ()
+      Bin _ l r -> sequence_ $ do
+        let
+          subs = tuple2 l r
+          sub_pre_orders =
+            calculatePreOrder rate_mx bls post_orders pre_order subs
+        sub <- subs
+        sub_pre_order <- sub_pre_orders
+        pure $ do
+          let deriv = calculatePartialDerivative
+                rate_mx
+                total_log_likelihood
+                sub_pre_order
+                (post_orders ! getNodeId sub)
+          modify' $ insert (getNodeId sub) deriv
+          go sub_pre_order sub
+  in (total_log_likelihood, execState (go root_pre_order topo) mempty)
 
 calculatePostOrder
   :: RateMatrix
@@ -107,7 +134,7 @@ calculatePreOrder
   -> PreOrder -- ^ the pre-order of the parent tree
   -> Tuple2 Topology -- ^ the subtrees
   -> Tuple2 PreOrder -- ^ the pre-order traversals of the subtrees
-calculatePreOrder rate_mx bls postorders (PreOrder parent_preorder) subs =
+calculatePreOrder rate_mx bls post_orders (PreOrder parent_preorder) subs =
   let
     both_transition_probs = do
       sub <- subs
@@ -118,11 +145,11 @@ calculatePreOrder rate_mx bls postorders (PreOrder parent_preorder) subs =
     sibling_transition_probs <- swap both_transition_probs
     sibling <- swap subs
     let
-      PostOrder sibling_postorder = postorders ! (getNodeId sibling)
+      PostOrder sibling_post_order = post_orders ! (getNodeId sibling)
     pure . PreOrder $
       Matrix.tr this_transition_probs Matrix.#>
       (parent_preorder *
-        (sibling_transition_probs Matrix.#> sibling_postorder))
+        (sibling_transition_probs Matrix.#> sibling_post_order))
 
 -- | Calculate the partial derivative of the log-likelihood w.r.t. the
 -- branch length of a given node

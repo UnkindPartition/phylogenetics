@@ -109,6 +109,9 @@ member = coerce (IntMap.member @a)
 size :: forall a . NodeMap a -> Int
 size = coerce (IntMap.size @a)
 
+mapWithKey :: forall a b . (NodeId -> a -> b) -> NodeMap a -> NodeMap b
+mapWithKey = coerce (IntMap.mapWithKey @a @b)
+
 instance Num a => Num (NodeMap a) where
   (+) = coerce (IntMap.unionWith @a (+))
   (-) = coerce (IntMap.unionWith @a (-))

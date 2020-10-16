@@ -36,6 +36,7 @@ test-suite test
     test.hs
   other-modules:
     NaiveLikelihood
+    NaiveGradient
   ghc-options:
     -Wall -Wno-orphans -Wno-name-shadowing -threaded
   build-depends:

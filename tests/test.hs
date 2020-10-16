@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedLists #-}
 import Test.Tasty
 import Test.Tasty.HUnit
-import Test.Tasty.QuickCheck hiding ((><), scale)
+import Test.Tasty.QuickCheck as QC hiding ((><), scale)
 import Test.Tasty.ExpectedFailure
 import Text.Printf (printf)
 import Data.Tuple.Homogenous
@@ -11,6 +11,7 @@ import qualified Phylogenetics.Likelihood_v1 as V1
 import qualified Phylogenetics.Likelihood_v2 as V2
 import qualified Phylogenetics.Gen as Gen
 import NaiveLikelihood
+import NaiveGradient
 
 qcDistributions :: Gen.BaseDistributions Gen
 qcDistributions = Gen.BaseDistributions
@@ -20,7 +21,7 @@ qcDistributions = Gen.BaseDistributions
   , numberOfSitesDistribution = choose (1, 3)
   , numberOfCharacterStatesDistribution = choose (2, 4)
   , characterStateDistribution = \n -> choose (0, n-1)
-  , branchLengthDistribution = getPositive <$> arbitrary
+  , branchLengthDistribution = choose (0,0.5)
   , rateDistribution = getPositive <$> arbitrary
   }
 
@@ -97,11 +98,23 @@ main = defaultMain $ testGroup "Tests"
           ( V2.logLikelihood
           , \rate_mx obs bls topo -> fst $ V2.gradient rate_mx obs bls topo
           )
+    , testProperty "naiveGradient vs V2.gradient" $
+        testWithPhylogeneticsModel $ \rate_mx obs bls topo ->
+          let
+            naive_gr = naiveGradient rate_mx obs bls topo
+            gr = snd $ V2.gradient rate_mx obs bls topo
+            l1_diff = sum (abs (naive_gr - gr))
+          in
+            counterexample (show l1_diff) $
+            counterexample (show naive_gr) $
+            counterexample (show gr) $
+              l1_diff < 1e-4
     ]
   ]
 
 testWithPhylogeneticsModel
-  :: (RateMatrix -> Observations -> BranchLengths -> Topology -> Property)
+  :: QC.Testable a
+  => (RateMatrix -> Observations -> BranchLengths -> Topology -> a)
   -> Property
 testWithPhylogeneticsModel k = property $ \topo rate_mx ->
   forAll (Gen.branchLengths qcDistributions topo) $ \bls ->

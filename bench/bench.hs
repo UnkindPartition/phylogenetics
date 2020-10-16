@@ -28,4 +28,5 @@ main = do
   defaultMain
     [ bench "V1.logLikelihood" $ whnf (V1.logLikelihood rate_mx obs bls) topo
     , bench "V2.logLikelihood" $ whnf (V2.logLikelihood rate_mx obs bls) topo
+    , bench "V2.gradient" $ whnf (fst . V2.gradient rate_mx obs bls) topo
     ]

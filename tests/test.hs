@@ -100,22 +100,27 @@ main = defaultMain $ testGroup "Tests"
     ]
   ]
 
+testWithPhylogeneticsModel
+  :: (RateMatrix -> Observations -> BranchLengths -> Topology -> Property)
+  -> Property
+testWithPhylogeneticsModel k = property $ \topo rate_mx ->
+  forAll (Gen.branchLengths qcDistributions topo) $ \bls ->
+  forAll (Gen.observations qcDistributions rate_mx topo) $ \obs ->
+  k rate_mx obs bls topo
+
 testLikelihoodCalculation
   :: Tuple2 (RateMatrix -> Observations -> BranchLengths -> Topology -> Double)
      -- ^ the two log-likelihood calculation functins
   -> Property
-testLikelihoodCalculation ll_fns = property $ \topo rate_mx ->
-  forAll (Gen.branchLengths qcDistributions topo) $ \bls ->
-  forAll (Gen.observations qcDistributions rate_mx topo) $ \obs ->
-    let
-      Tuple2 (ll1, ll2) = do
-        ll_fn <- ll_fns
-        pure $ ll_fn rate_mx obs bls topo
-    in
-      label (show (Phylo.size $ leaves topo) ++ " leaves") $
-      counterexample (printf "First LL: %.3f, second LL: %.3f" ll1 ll2) $
-        (abs (ll1 - ll2) < 1e-10)
-
+testLikelihoodCalculation ll_fns = testWithPhylogeneticsModel $ \rate_mx obs bls topo ->
+  let
+    Tuple2 (ll1, ll2) = do
+      ll_fn <- ll_fns
+      pure $ ll_fn rate_mx obs bls topo
+  in
+    label (show (Phylo.size $ leaves topo) ++ " leaves") $
+    counterexample (printf "First LL: %.3f, second LL: %.3f" ll1 ll2) $
+      (abs (ll1 - ll2) < 1e-10)
 
 isStochastic :: Matrix Double -> Bool
 isStochastic mx =

@@ -8,6 +8,7 @@ import Data.Tuple.Homogenous
 import qualified Numeric.LinearAlgebra as Matrix
 import Numeric.Log as Log
 import Control.Monad.State
+import Data.List (foldl')
 
 import Phylogenetics.Types
 
@@ -50,6 +51,29 @@ likelihood1 rate_mx obs bls site topo =
         subs = tuple2 sub1 sub2
       in
         calculatePostOrder rate_mx bls subs (go <$> subs)
+
+-- | Calculate the log-likelihood and the gradient of the log-likelihood
+-- w.r.t. all branch lengths
+gradient
+  :: RateMatrix
+  -> Observations
+  -> BranchLengths
+  -> Topology
+  -> (Log Double, NodeMap Double) -- ^ log-likelihood and its gradient
+gradient rate_mx obs bls tree =
+  foldl' (\(l,g) (l1,g1) -> ((,) $! (l*l1)) $! (g+g1)) (Exp 0, mempty) $ do
+    site <- [0 .. numOfSites obs - 1]
+    return $ gradient1 rate_mx obs bls site tree
+
+-- | Log-likelihood and gradient for a single site
+gradient1
+  :: RateMatrix
+  -> Observations
+  -> BranchLengths
+  -> Int -- ^ the index of the site
+  -> Topology
+  -> (Log Double, NodeMap Double)
+gradient1 rate_mx obs bls site topo = undefined
 
 calculatePostOrder
   :: RateMatrix

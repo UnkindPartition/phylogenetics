@@ -108,3 +108,12 @@ member = coerce (IntMap.member @a)
 
 size :: forall a . NodeMap a -> Int
 size = coerce (IntMap.size @a)
+
+instance Num a => Num (NodeMap a) where
+  (+) = coerce (IntMap.unionWith @a (+))
+  (-) = coerce (IntMap.unionWith @a (-))
+  (*) = coerce (IntMap.unionWith @a (*))
+  abs = coerce (IntMap.map @a abs)
+  signum = coerce (IntMap.map @a signum)
+  negate = coerce (IntMap.map @a negate)
+  fromInteger = error "fromInteger is not supported for NodeMaps"

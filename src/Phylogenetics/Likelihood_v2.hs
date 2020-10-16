@@ -60,7 +60,7 @@ gradient
   -> Topology
   -> (Double, NodeMap Double) -- ^ log-likelihood and its gradient
 gradient rate_mx obs bls tree =
-  foldl' (\(l,g) (l1,g1) -> ((,) $! (l*l1)) $! (g+g1)) (0, mempty) $ do
+  foldl' (\(l,g) (l1,g1) -> ((,) $! (l+l1)) $! (g+g1)) (0, mempty) $ do
     site <- [0 .. numOfSites obs - 1]
     return $ gradient1 rate_mx obs bls site tree
 
@@ -75,9 +75,11 @@ gradient1
 gradient1 rate_mx obs bls site topo =
   let
     post_orders = calculateAllPostOrders rate_mx obs bls site topo
-    root_pre_order = PreOrder $ VS.replicate (numOfStates rate_mx) $
-      1 / (numOfStates rate_mx)
-    total_log_likelihood =
+    root_pre_order = PreOrder $
+      case topo of
+        Leaf i -> getPostOrder $ calculateLeafPostOrder rate_mx obs site i
+        Bin {} -> VS.replicate (numOfStates rate_mx) $ 1 / (numOfStates rate_mx)
+    total_log_likelihood = log $
       getPreOrder root_pre_order Matrix.<.>
       (getPostOrder $ post_orders ! getNodeId topo)
 

@@ -92,6 +92,11 @@ main = defaultMain $ testGroup "Tests"
           ( V1.logLikelihood
           , V2.logLikelihood
           )
+    , testProperty "V2.logLikelihood vs V2.gradient" $
+        testLikelihoodCalculation $ Tuple2
+          ( V2.logLikelihood
+          , \rate_mx obs bls topo -> fst $ V2.gradient rate_mx obs bls topo
+          )
     ]
   ]
 

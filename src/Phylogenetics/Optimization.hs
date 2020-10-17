@@ -19,15 +19,12 @@ data Method = forall method_state . Method
   }
 
 gradientUpdate
-  :: Problem
-  -> Double -- ^ learning rate
+  :: Double -- ^ learning rate
   -> BranchLengths
-  -> (BranchLengths, Double, Gradient) -- updated branch lengths and the LL and the gradient of the *original* branch lengths
-gradientUpdate prob rate bls =
-  let
-    (ll, grad) = gradient prob bls
-    bls' = (max 1e-10) <$> bls + (BranchLength . (rate *) <$> grad)
-  in (bls', ll, grad)
+  -> Gradient
+  -> BranchLengths
+gradientUpdate rate bls grad =
+  (max 1e-10) <$> bls + (BranchLength . (rate *) <$> grad)
 
 gradientDescent
   :: Double -- ^ learning rate
@@ -46,7 +43,8 @@ gradientDescentStep
 gradientDescentStep rate0 prob bls = go rate0 where
   go rate =
     let
-      (bls', ll, _) = gradientUpdate prob rate bls
+      (ll, grad) = gradient prob bls
+      bls' = gradientUpdate rate bls grad
       ll' = logLikelihood prob bls'
     in
       if

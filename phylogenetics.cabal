@@ -12,8 +12,28 @@ library
     Phylogenetics.Likelihood_v1
     Phylogenetics.Likelihood_v2
     Phylogenetics.Optimization
-  build-depends:       base, vector, random-fu, ad, containers, mtl,
+  build-depends:       base, vector, random-fu, containers, mtl,
                        tuples-homogenous-h98, hmatrix
+  ghc-options:         -Wall
+  default-language:    Haskell2010
+  default-extensions:  ScopedTypeVariables, RecordWildCards, NamedFieldPuns,
+                       NumDecimals, ViewPatterns, BangPatterns, DerivingStrategies,
+                       FlexibleInstances, MultiParamTypeClasses,
+                       GeneralizedNewtypeDeriving, RankNTypes, OverloadedLabels,
+                       TemplateHaskell, DataKinds, TypeFamilies,
+                       UndecidableInstances, DeriveFunctor, DeriveFoldable,
+                       DeriveTraversable, DeriveGeneric,
+                       OverloadedStrings, MultiWayIf, LambdaCase,
+                       FlexibleContexts, TupleSections, TypeApplications,
+                       ExistentialQuantification
+
+executable phylo
+  hs-source-dirs:
+    app
+  main-is: Main.hs
+  build-depends:       base, vector, random-fu, containers, mtl,
+                       tuples-homogenous-h98, hmatrix, optparse-applicative,
+                       phylogenetics
   ghc-options:         -Wall
   default-language:    Haskell2010
   default-extensions:  ScopedTypeVariables, RecordWildCards, NamedFieldPuns,

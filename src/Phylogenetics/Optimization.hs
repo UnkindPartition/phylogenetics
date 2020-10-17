@@ -23,16 +23,17 @@ gradientDescent
   -> Method
 gradientDescent rate = Method
   { methodName = printf "Gradient descent; rate = %.1g" rate
-  , methodStep = gradientDescentStep
-  , methodInit = rate
+  , methodStep = gradientDescentStep rate
+  , methodInit = ()
   }
 
 gradientDescentStep
-  :: Problem
+  :: Double -- ^ learning rate
+  -> Problem
   -> BranchLengths
-  -> Double -- ^ learning rate
-  -> Maybe (BranchLengths, Double, Double, Double) -- ^ new branch lengths, actual learning rate, log-likelihood, new state
-gradientDescentStep prob bls rate0 = go rate0 where
+  -> () -- ^ no state
+  -> Maybe (BranchLengths, Double, Double, ()) -- ^ new branch lengths, actual learning rate, log-likelihood, new state
+gradientDescentStep rate0 prob bls () = go rate0 where
   (ll, grad) = gradient prob bls
   go rate =
     let
@@ -40,6 +41,6 @@ gradientDescentStep prob bls rate0 = go rate0 where
       ll' = logLikelihood prob bls'
     in
       if
-        | ll' > ll -> Just (bls', rate, ll', rate)
+        | ll' > ll -> Just (bls', rate, ll', ())
         | rate < 1e-10 -> Nothing
         | otherwise -> go (rate / 3)

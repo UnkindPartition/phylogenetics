@@ -10,14 +10,10 @@ import qualified Phylogenetics.Gen as Gen
 import Phylogenetics.Types
 
 benchDistributions :: Gen.BaseDistributions RVar
-benchDistributions = Gen.BaseDistributions
+benchDistributions = Gen.dnaBaseDistributions
   { numberOfLeavesInTreeDistribution = pure 100
-  , numberOfLeavesInLeftSubtreeDistribution = \n -> (1 +) <$> binomial (n-2) (0.5 :: Double)
   , numberOfSitesDistribution = pure 1
   , numberOfCharacterStatesDistribution = pure 4
-  , characterUniformDistribution = \n -> integralUniform 0 (n-1)
-  , branchLengthDistribution = exponential 0.2
-  , rateDistribution = stdUniform
   }
 
 main :: IO ()

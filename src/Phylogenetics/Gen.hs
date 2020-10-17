@@ -11,6 +11,11 @@ import qualified Data.Vector.Unboxed as VU
 import Numeric.LinearAlgebra as Matrix (fromList, toList, fromRows, (!))
 import Control.Monad
 import Control.Monad.State
+import Data.Random
+import Data.Random.Distribution.Binomial
+import Data.Random.Distribution.Uniform
+import Data.Random.Distribution.Exponential
+import Data.Random.Distribution.Categorical
 
 import Phylogenetics.Types as Phylo hiding (size)
 
@@ -38,6 +43,19 @@ data BaseDistributions m = BaseDistributions
     -- be normalized such that their sum (excluding the diagonal entry) in
     -- each row is 1. Rates must be positive.
   }
+
+dnaBaseDistributions :: BaseDistributions RVar
+dnaBaseDistributions = BaseDistributions
+  { numberOfLeavesInTreeDistribution = pure 100
+  , numberOfLeavesInLeftSubtreeDistribution = \n -> (1 +) <$> binomial (n-2) (0.5 :: Double)
+  , numberOfSitesDistribution = integralUniform 1 10
+  , numberOfCharacterStatesDistribution = pure 4
+  , characterUniformDistribution = \n -> integralUniform 0 (n-1)
+  , characterCategoricalDistribution = \freqs -> categorical $ zip freqs [0..]
+  , branchLengthDistribution = exponential 0.2
+  , rateDistribution = stdUniformPos
+  }
+
 
 topology
   :: forall m . Monad m

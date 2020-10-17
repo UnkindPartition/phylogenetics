@@ -5,6 +5,9 @@ import Control.Monad.Trans.Maybe
 import Control.DeepSeq
 import Control.Exception
 import Data.Random
+import Data.Random.Source.PureMT
+import Data.IORef
+import Data.Word
 import Text.Printf (printf)
 import System.IO
 import System.Clock
@@ -33,16 +36,24 @@ traceParser = trace
     <> value 30
     <> showDefault
     )
+  <*> option auto
+    (  long "seed"
+    <> metavar "NUMBER"
+    <> help "random seed"
+    <> value 2020
+    <> showDefault
+    )
 
 data TraceState method_state = TraceState
   { trace_method_state :: !method_state
   }
 
-trace :: Int -> IO ()
-trace num_steps = do
+trace :: Int -> Word64 -> IO ()
+trace num_steps seed = do
   hSetBuffering stdout LineBuffering
+  rnd_src <- newIORef (pureMT seed)
 
-  (prob, true_bls) <- sample $ do
+  (prob, true_bls) <- flip runRVar rnd_src $ do
     rate_mx <- rateMatrix bd
     topo <- topology bd
     bls <- branchLengths bd topo

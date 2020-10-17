@@ -72,7 +72,7 @@ trace num_steps = do
     bd = dnaBaseDistributions
       { numberOfSitesDistribution = pure 500
       }
-    methods = gradientDescent <$> [1e-3, 1e-2]
+    methods = gradientDescent <$> [1e-2, 1e-3, 1e-4, 1e-5]
 
 calculateMSE
   :: BranchLengths

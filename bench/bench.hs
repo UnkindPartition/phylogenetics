@@ -15,7 +15,7 @@ benchDistributions = Gen.BaseDistributions
   , numberOfLeavesInLeftSubtreeDistribution = \n -> (1 +) <$> binomial (n-2) (0.5 :: Double)
   , numberOfSitesDistribution = pure 1
   , numberOfCharacterStatesDistribution = pure 4
-  , characterStateDistribution = \n -> integralUniform 0 (n-1)
+  , characterUniformDistribution = \n -> integralUniform 0 (n-1)
   , branchLengthDistribution = exponential 0.2
   , rateDistribution = stdUniform
   }

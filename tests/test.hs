@@ -20,7 +20,7 @@ qcDistributions = Gen.BaseDistributions
   , numberOfLeavesInLeftSubtreeDistribution = \n -> choose (1, n-1)
   , numberOfSitesDistribution = choose (1, 3)
   , numberOfCharacterStatesDistribution = choose (2, 4)
-  , characterStateDistribution = \n -> choose (0, n-1)
+  , characterUniformDistribution = \n -> choose (0, n-1)
   , branchLengthDistribution = choose (0,0.5)
   , rateDistribution = getPositive <$> arbitrary
   }

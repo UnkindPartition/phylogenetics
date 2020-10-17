@@ -24,7 +24,7 @@ data BaseDistributions m = BaseDistributions
     -- ^ How many sites are we observing?
   , numberOfCharacterStatesDistribution :: m Word8
     -- ^ How many states does each character have?
-  , characterStateDistribution :: Word8 -> m Word8
+  , characterUniformDistribution :: Word8 -> m Word8
     -- ^ Generate a single random character, given the total number of
     -- characters (should be between 0 and n-1)
   , branchLengthDistribution :: m Double
@@ -82,7 +82,7 @@ observations BaseDistributions{..} rate_mx topo = do
 
   let
     characterAtSite :: m (VU.Vector Word8)
-    characterAtSite = VU.fromList <$> replicateM n (characterStateDistribution m)
+    characterAtSite = VU.fromList <$> replicateM n (characterUniformDistribution m)
 
   fmap (Observations n) . traverse (const characterAtSite) $ leaf_ids
 

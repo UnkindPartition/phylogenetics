@@ -10,7 +10,7 @@ import Phylogenetics.Types as Phylo
 import qualified Phylogenetics.Likelihood_v1 as V1
 import qualified Phylogenetics.Likelihood_v2 as V2
 import qualified Phylogenetics.Gen as Gen
-import qualified Phylogenetics.Opt.GradientDescent as GD
+import qualified Phylogenetics.Optimization as Opt
 import NaiveLikelihood
 import NaiveGradient
 
@@ -118,7 +118,7 @@ main = defaultMain $ testGroup "Tests"
     [ testGroup "GradientDescent"
       [ testProperty "One step improves the likelihood of the original branch lengths" $
           testWithRealisticPhylogeneticsModel $ \prob bls ->
-            case GD.step 0.01 prob bls of
+            case Opt.gradientDescentStep 0.01 prob bls of
               Nothing -> label "step returned Nothing" True
               Just (bls', ll) -> property $
                 (ll - V2.logLikelihood prob bls') < 1e-10 &&
@@ -131,7 +131,7 @@ main = defaultMain $ testGroup "Tests"
               orig_ll = V2.logLikelihood prob bls
             in
             counterexample (printf "init_ll = %.3f, orig_ll = %.3f" init_ll orig_ll) $
-            case GD.step 0.01 prob init_bls of
+            case Opt.gradientDescentStep 0.01 prob init_bls of
               Nothing -> counterexample "step returned Nothing" False
               Just (_bls', step_ll) -> property $
                   counterexample (printf "step_ll = %.3f" step_ll) $

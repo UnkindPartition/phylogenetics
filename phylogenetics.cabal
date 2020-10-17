@@ -11,7 +11,7 @@ library
     Phylogenetics.Gen
     Phylogenetics.Likelihood_v1
     Phylogenetics.Likelihood_v2
-    Phylogenetics.Opt.GradientDescent
+    Phylogenetics.Optimization
   build-depends:       base, vector, random-fu, ad, containers, mtl,
                        tuples-homogenous-h98, hmatrix
   ghc-options:         -Wall

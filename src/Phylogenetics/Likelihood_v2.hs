@@ -17,24 +17,20 @@ newtype PostOrder = PostOrder { getPostOrder :: Matrix.Vector Double }
 
 -- | The full log-likelihood, summed over all sites
 logLikelihood
-  :: RateMatrix
-  -> Observations
+  :: Problem
   -> BranchLengths
-  -> Topology
   -> Double
-logLikelihood rate_mx obs bls tree = sum $ do
+logLikelihood prob@(Problem _rate_mx obs _topo) bls = sum $ do
   site <- [0 .. numOfSites obs - 1]
-  return . log $ likelihood1 rate_mx obs bls site tree
+  return . log $ likelihood1 prob bls site
 
 -- | Likelihood for a single site
 likelihood1
-  :: RateMatrix
-  -> Observations
+  :: Problem
   -> BranchLengths
   -> Int -- ^ the index of the site
-  -> Topology
   -> Double
-likelihood1 rate_mx obs bls site topo =
+likelihood1 (Problem rate_mx obs topo) bls site =
   case topo of
     Leaf {} -> 1
     Bin {} -> (VS.sum . getPostOrder) (go topo) / numOfStates rate_mx
@@ -54,25 +50,21 @@ likelihood1 rate_mx obs bls site topo =
 -- | Calculate the log-likelihood and the gradient of the log-likelihood
 -- w.r.t. all branch lengths
 gradient
-  :: RateMatrix
-  -> Observations
+  :: Problem
   -> BranchLengths
-  -> Topology
   -> (Double, NodeMap Double) -- ^ log-likelihood and its gradient
-gradient rate_mx obs bls tree =
+gradient prob@(Problem _rate_mx obs _tree) bls =
   foldl' (\(l,g) (l1,g1) -> ((,) $! (l+l1)) $! (g+g1)) (0, mempty) $ do
     site <- [0 .. numOfSites obs - 1]
-    return $ gradient1 rate_mx obs bls site tree
+    return $ gradient1 prob bls site
 
 -- | Log-likelihood and gradient for a single site
 gradient1
-  :: RateMatrix
-  -> Observations
+  :: Problem
   -> BranchLengths
   -> Int -- ^ the index of the site
-  -> Topology
   -> (Double, NodeMap Double)
-gradient1 rate_mx obs bls site topo =
+gradient1 (Problem rate_mx obs topo) bls site =
   let
     post_orders = calculateAllPostOrders rate_mx obs bls site topo
     root_pre_order = PreOrder $

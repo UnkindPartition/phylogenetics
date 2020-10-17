@@ -28,12 +28,10 @@ fillObservations n_states topo obs0 =
         >>= fillObservations n_states r
 
 naiveLikelihood, fullLikelihood
-  :: RateMatrix
-  -> Observations
+  :: Problem
   -> BranchLengths
-  -> Topology
   -> Double
-naiveLikelihood rate_mx obs0 bls topo =
+naiveLikelihood (Problem rate_mx obs0 topo) bls =
   let
     full_obs = fillObservations (numOfStates rate_mx) topo obs0
     factor =
@@ -44,11 +42,11 @@ naiveLikelihood rate_mx obs0 bls topo =
         Bin{} -> (1 / numOfStates rate_mx) ^ (numOfSites obs0)
   in
     factor * sum
-      [ fullLikelihood rate_mx obs bls topo
+      [ fullLikelihood (Problem rate_mx obs topo) bls
       | obs <- full_obs
       ]
-fullLikelihood rate_mx obs@Observations{..} bls =
-  \case
+fullLikelihood (Problem rate_mx obs@Observations{..} topo) bls =
+  case topo of
     Leaf _ -> 1
     Bin parent l@(getNodeId -> l_id) r@(getNodeId -> r_id) ->
       let
@@ -63,5 +61,5 @@ fullLikelihood rate_mx obs@Observations{..} bls =
             Matrix.! fromIntegral ((characters Phylo.! r_id)    VU.! i))
         | i <- [0 .. numOfSites - 1]
         ]
-        * fullLikelihood rate_mx obs bls l
-        * fullLikelihood rate_mx obs bls r
+        * fullLikelihood (Problem rate_mx obs l) bls
+        * fullLikelihood (Problem rate_mx obs r) bls

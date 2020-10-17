@@ -79,6 +79,10 @@ transitionProbabilities
   -> Matrix Double
 transitionProbabilities (RateMatrix q) (BranchLength t) = expm (scale t q)
 
+-- | A phylogenetic inference problem
+data Problem = Problem RateMatrix Observations Topology
+  deriving Show
+
 ----------------------------------------------------------------------
 --                              NodeMap
 ----------------------------------------------------------------------

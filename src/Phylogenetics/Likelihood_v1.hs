@@ -22,24 +22,20 @@ data PostOrder
 
 -- | The full log-likelihood, summed over all sites
 logLikelihood
-  :: RateMatrix
-  -> Observations
+  :: Problem
   -> BranchLengths
-  -> Topology
   -> Double
-logLikelihood rate_mx obs bls tree = sum $ do
+logLikelihood prob@(Problem _rate_mx obs _tree) bls = sum $ do
   site <- [0 .. numOfSites obs - 1]
-  return . log $ likelihood1 rate_mx obs bls site tree
+  return . log $ likelihood1 prob bls site
 
 -- | Likelihood for a single site
 likelihood1
-  :: RateMatrix
-  -> Observations
+  :: Problem
   -> BranchLengths
   -> Int -- ^ the index of the site
-  -> Topology
   -> Double
-likelihood1 rate_mx obs bls site topo =
+likelihood1 (Problem rate_mx obs topo) bls site =
   case go topo of
     LeafCL{} -> 1
     BinCL ls -> VU.sum ls / numOfStates rate_mx

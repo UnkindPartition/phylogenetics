@@ -97,3 +97,13 @@ rateMatrix BaseDistributions{..} = do
     let rates = map (/ sum rates0) rates0
     return $ Matrix.fromList $ take i rates ++ [- 1] ++ drop i rates
   return $ RateMatrix $ fromRows rows
+
+problem
+  :: forall m . Monad m
+  => BaseDistributions m
+  -> m Problem
+problem bd = do
+  rate_mx <- rateMatrix bd
+  topo <- topology bd
+  obs <- observations bd rate_mx topo
+  pure $ Problem rate_mx obs topo

@@ -74,7 +74,8 @@ main = defaultMain $ testGroup "Tests"
             [ (NodeId 0, [1])
             , (NodeId 2, [0])
             ]
-          ll = V1.logLikelihood (RateMatrix rm) obs bls topo
+          prob = Problem (RateMatrix rm) obs topo
+          ll = V1.logLikelihood prob bls
           tp0 = expm (scale 3.0 rm)
           tp2 = expm (scale 5.0 rm)
           expected_ll = log $
@@ -85,7 +86,7 @@ main = defaultMain $ testGroup "Tests"
           (abs (expected_ll - ll) < 1e-10)
     , testProperty "naiveLikelihood vs V1.logLikelihood" $
         testLikelihoodCalculation $ Tuple2
-          ( \rate_mx obs bls topo -> log $ naiveLikelihood rate_mx obs bls topo
+          ( \prob bls -> log $ naiveLikelihood prob bls
           , V1.logLikelihood
           )
     , testProperty "V1.logLikelihood vs V2.logLikelihood" $
@@ -96,13 +97,13 @@ main = defaultMain $ testGroup "Tests"
     , testProperty "V2.logLikelihood vs V2.gradient" $
         testLikelihoodCalculation $ Tuple2
           ( V2.logLikelihood
-          , \rate_mx obs bls topo -> fst $ V2.gradient rate_mx obs bls topo
+          , \prob bls -> fst $ V2.gradient prob bls
           )
     , testProperty "naiveGradient vs V2.gradient" $
-        testWithPhylogeneticsModel $ \rate_mx obs bls topo ->
+        testWithPhylogeneticsModel $ \prob bls ->
           let
-            naive_gr = naiveGradient rate_mx obs bls topo
-            gr = snd $ V2.gradient rate_mx obs bls topo
+            naive_gr = naiveGradient prob bls
+            gr = snd $ V2.gradient prob bls
             l1_diff = sum (abs (naive_gr - gr))
           in
             counterexample (show l1_diff) $
@@ -114,22 +115,22 @@ main = defaultMain $ testGroup "Tests"
 
 testWithPhylogeneticsModel
   :: QC.Testable a
-  => (RateMatrix -> Observations -> BranchLengths -> Topology -> a)
+  => (Problem -> BranchLengths -> a)
   -> Property
-testWithPhylogeneticsModel k = property $ \topo rate_mx ->
+testWithPhylogeneticsModel k =
+  forAll (Gen.problem qcDistributions) $ \prob@(Problem _ _ topo) ->
   forAll (Gen.branchLengths qcDistributions topo) $ \bls ->
-  forAll (Gen.observations qcDistributions rate_mx topo) $ \obs ->
-  k rate_mx obs bls topo
+  k prob bls
 
 testLikelihoodCalculation
-  :: Tuple2 (RateMatrix -> Observations -> BranchLengths -> Topology -> Double)
+  :: Tuple2 (Problem -> BranchLengths -> Double)
      -- ^ the two log-likelihood calculation functins
   -> Property
-testLikelihoodCalculation ll_fns = testWithPhylogeneticsModel $ \rate_mx obs bls topo ->
+testLikelihoodCalculation ll_fns = testWithPhylogeneticsModel $ \prob@(Problem _ _ topo) bls ->
   let
     Tuple2 (ll1, ll2) = do
       ll_fn <- ll_fns
-      pure $ ll_fn rate_mx obs bls topo
+      pure $ ll_fn prob bls
   in
     label (show (Phylo.size $ leaves topo) ++ " leaves") $
     counterexample (printf "First LL: %.3f, second LL: %.3f" ll1 ll2) $

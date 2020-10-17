@@ -2,9 +2,12 @@ import Options.Applicative
 import Control.Monad
 import Control.Monad.State
 import Control.Monad.Trans.Maybe
+import Control.DeepSeq
+import Control.Exception
 import Data.Random
 import Text.Printf (printf)
 import System.IO
+import System.Clock
 import Phylogenetics.Types
 import Phylogenetics.Gen
 import Phylogenetics.Likelihood_v2
@@ -48,10 +51,10 @@ trace num_steps = do
 
   let init_bls = 0.1 <$ true_bls
 
-  printf "method,step,rate,ll,mse\n"
+  printf "method,step,rate,ll,mse,time\n"
 
   forM_ methods $ \Method{..} -> do
-    printf "%s,0,NA,%.6f,%.6g\n"
+    printf "%s,0,NA,%.6f,%.6g,0\n"
       methodName
       (logLikelihood prob init_bls)
       (calculateMSE init_bls true_bls)
@@ -59,10 +62,22 @@ trace num_steps = do
       forM_ [1 .. num_steps] $ \istep ->
       runMaybeT $ do
         prev_state <- get
+        t0 <- liftIO $ getTime ProcessCPUTime
+        let step_result = methodStep prob (trace_method_state prev_state)
+        case step_result of
+          Nothing -> pure ()
+          Just (bls, actual_learning_rate, ll, _) -> do
+            liftIO . evaluate . rnf $ bls
+            liftIO . evaluate . rnf $ actual_learning_rate
+            liftIO . evaluate . rnf $ ll
+        t1 <- liftIO $ getTime ProcessCPUTime
+        let
+          time :: Double
+          time = fromIntegral (toNanoSecs (diffTimeSpec t1 t0)) / 1e9
         case methodStep prob (trace_method_state prev_state) of
           Just (bls, actual_learning_rate, ll, st) -> do
             put $! TraceState st
-            liftIO $ printf "%s,%d,%.4g,%.6f,%.6g\n" methodName istep actual_learning_rate ll (calculateMSE bls true_bls)
+            liftIO $ printf "%s,%d,%.4g,%.6f,%.6g,%.3g\n" methodName istep actual_learning_rate ll (calculateMSE bls true_bls) time
             --liftIO $ print bls
           Nothing -> mzero
 

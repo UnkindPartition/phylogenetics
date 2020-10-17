@@ -4,6 +4,7 @@ import qualified Data.IntMap.Strict as IntMap
 import qualified Data.Vector.Unboxed as VU
 import Data.Word
 import Control.Monad.State
+import Control.DeepSeq
 import Numeric.LinearAlgebra hiding ((<>), fromList)
 import Data.Coerce
 import GHC.Stack
@@ -15,7 +16,7 @@ newtype NodeId = NodeId Int
 
 -- | The length of a branch in a phylogenetic tree
 newtype BranchLength = BranchLength Double
-  deriving newtype (Eq, Ord, Num, Real, Fractional, RealFrac, Show)
+  deriving newtype (Eq, Ord, Num, Real, Fractional, RealFrac, Show, NFData)
 
 -- | A phylogenetic tree topology.
 data Topology
@@ -92,6 +93,7 @@ data Problem = Problem RateMatrix Observations Topology
 
 newtype NodeMap a = NodeMap (IntMap.IntMap a)
   deriving (Semigroup, Monoid, Show, Functor, Foldable, Traversable)
+  deriving newtype NFData
 
 instance IsList (NodeMap a) where
   type Item (NodeMap a) = (NodeId, a)

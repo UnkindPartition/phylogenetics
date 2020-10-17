@@ -44,7 +44,7 @@ trace num_steps = do
 
   let init_bls = 0.1 <$ true_bls
 
-  printf "method,step,rate,ll"
+  printf "method,step,rate,ll,mse\n"
 
   forM_ methods $ \Method{..} ->
     flip evalStateT (TraceState methodInit init_bls) $
@@ -53,7 +53,11 @@ trace num_steps = do
         case methodStep prob (trace_bls prev_state) (trace_method_state prev_state) of
           Just (bls, actual_learning_rate, ll, st) -> do
             put $! TraceState st bls
-            liftIO $ printf "%s,%d,%.4g,%.6f" methodName istep actual_learning_rate ll
+            let mse =
+                  case sum . fmap (^(2::Int)) $ bls - true_bls of
+                    BranchLength sum_errors_squared ->
+                      sum_errors_squared / fromIntegral (size true_bls)
+            liftIO $ printf "%s,%d,%.4g,%.6f,%.6g\n" methodName istep actual_learning_rate ll mse
           Nothing -> mzero
 
   return ()

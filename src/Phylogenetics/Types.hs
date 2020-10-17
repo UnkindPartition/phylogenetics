@@ -56,6 +56,9 @@ addIdsToTopology topo0 = evalState (go topo0) 0
 -- 'NodeId'.
 type BranchLengths = NodeMap BranchLength
 
+-- | The gradient of the log likelihood w.r.t. the branch lengths
+type Gradient = NodeMap Double
+
 -- | A set of observed characters per site. Character states are encoded by
 -- integers from 0 to @'numOfStates' - 1@.
 data Observations = Observations
@@ -124,3 +127,6 @@ instance Num a => Num (NodeMap a) where
   signum = coerce (IntMap.map @a signum)
   negate = coerce (IntMap.map @a negate)
   fromInteger = error "fromInteger is not supported for NodeMaps"
+
+l2norm :: BranchLengths -> Double
+l2norm = sqrt . sum . fmap (\(BranchLength b) -> b^(2::Int))

@@ -52,7 +52,7 @@ likelihood1 (Problem rate_mx obs topo) bls site =
 gradient
   :: Problem
   -> BranchLengths
-  -> (Double, NodeMap Double) -- ^ log-likelihood and its gradient
+  -> (Double, Gradient) -- ^ log-likelihood and its gradient
 gradient prob@(Problem _rate_mx obs _tree) bls =
   foldl' (\(l,g) (l1,g1) -> ((,) $! (l+l1)) $! (g+g1)) (0, mempty) $ do
     site <- [0 .. numOfSites obs - 1]
@@ -63,7 +63,7 @@ gradient1
   :: Problem
   -> BranchLengths
   -> Int -- ^ the index of the site
-  -> (Double, NodeMap Double)
+  -> (Double, Gradient)
 gradient1 (Problem rate_mx obs topo) bls site =
   let
     post_orders = calculateAllPostOrders rate_mx obs bls site topo

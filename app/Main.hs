@@ -33,7 +33,6 @@ traceParser = trace
 
 data TraceState method_state = TraceState
   { trace_method_state :: !method_state
-  , trace_bls :: !BranchLengths
   }
 
 trace :: Int -> IO ()
@@ -56,13 +55,13 @@ trace num_steps = do
       methodName
       (logLikelihood prob init_bls)
       (calculateMSE init_bls true_bls)
-    flip evalStateT (TraceState methodInit init_bls) $
+    flip evalStateT (TraceState (methodInit init_bls)) $
       forM_ [1 .. num_steps] $ \istep ->
       runMaybeT $ do
         prev_state <- get
-        case methodStep prob (trace_bls prev_state) (trace_method_state prev_state) of
+        case methodStep prob (trace_method_state prev_state) of
           Just (bls, actual_learning_rate, ll, st) -> do
-            put $! TraceState st bls
+            put $! TraceState st
             liftIO $ printf "%s,%d,%.4g,%.6f,%.6g\n" methodName istep actual_learning_rate ll (calculateMSE bls true_bls)
             --liftIO $ print bls
           Nothing -> mzero

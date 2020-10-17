@@ -71,8 +71,9 @@ trace num_steps = do
   where
     bd = dnaBaseDistributions
       { numberOfSitesDistribution = pure 500
+      , numberOfLeavesInTreeDistribution = pure 100
       }
-    methods = gradientDescent <$> [1e-2, 1e-3, 1e-4, 1e-5]
+    methods = gradientDescent <$> [1e-3, 1e-4, 1e-5]
 
 calculateMSE
   :: BranchLengths

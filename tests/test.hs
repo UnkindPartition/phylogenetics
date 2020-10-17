@@ -21,6 +21,8 @@ qcDistributions = Gen.BaseDistributions
   , numberOfSitesDistribution = choose (1, 3)
   , numberOfCharacterStatesDistribution = choose (2, 4)
   , characterUniformDistribution = \n -> choose (0, n-1)
+  , characterCategoricalDistribution = \freqs -> frequency $
+      zip (round . (1e6*) <$> freqs) (pure <$> [0..])
   , branchLengthDistribution = choose (0,0.5)
   , rateDistribution = getPositive <$> arbitrary
   }

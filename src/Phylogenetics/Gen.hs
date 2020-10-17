@@ -8,8 +8,9 @@ module Phylogenetics.Gen where
 
 import Data.Word
 import qualified Data.Vector.Unboxed as VU
-import Numeric.LinearAlgebra as Matrix (fromList, fromRows)
+import Numeric.LinearAlgebra as Matrix (fromList, toList, fromRows, (!))
 import Control.Monad
+import Control.Monad.State
 
 import Phylogenetics.Types as Phylo hiding (size)
 
@@ -27,6 +28,9 @@ data BaseDistributions m = BaseDistributions
   , characterUniformDistribution :: Word8 -> m Word8
     -- ^ Generate a single random character, given the total number of
     -- characters (should be between 0 and n-1)
+  , characterCategoricalDistribution :: [Double] -> m Word8
+    -- ^ Generate a single random character from the given categorical
+    -- distribution
   , branchLengthDistribution :: m Double
     -- ^ Branch length; should be > 0.
   , rateDistribution :: m Double
@@ -67,6 +71,8 @@ branchLengths
   -> m BranchLengths
 branchLengths bd = traverse (const $ branchLength bd) . allIds
 
+-- | Generate a random set of observations that doesn't really take into
+-- account the rate matrix or branch lengths
 observations
   :: forall m . Monad m
   => BaseDistributions m
@@ -85,6 +91,37 @@ observations BaseDistributions{..} rate_mx topo = do
     characterAtSite = VU.fromList <$> replicateM n (characterUniformDistribution m)
 
   fmap (Observations n) . traverse (const characterAtSite) $ leaf_ids
+
+-- | Generate a realistic set of observations that takes into account the
+-- rate matrix and branch lengths
+realisticObservations
+  :: forall m . Monad m
+  => BaseDistributions m
+  -> RateMatrix
+  -> Topology
+  -> BranchLengths
+  -> m Observations
+realisticObservations BaseDistributions{..} rate_mx topo0 bls = do
+  let
+    m = numOfStates rate_mx
+  numOfSites <- numberOfSitesDistribution
+  charactersAtRoot <- VU.fromList <$> replicateM numOfSites (characterUniformDistribution m)
+  characters <- execStateT (go charactersAtRoot topo0) mempty
+  pure Observations{..}
+  where
+    go :: VU.Vector Word8 -> Topology -> StateT (NodeMap (VU.Vector Word8)) m ()
+    go chars = \case
+        Leaf leaf_id -> modify' $ insert leaf_id chars
+        Bin _ l r -> descend chars l >> descend chars r
+    descend :: VU.Vector Word8 -> Topology -> StateT (NodeMap (VU.Vector Word8)) m ()
+    descend parent_chars topo = do
+      let
+        bl = bls Phylo.! getNodeId topo
+        probs = transitionProbabilities rate_mx bl
+      these_chars <- VU.forM parent_chars $ \char ->
+        (lift . characterCategoricalDistribution . Matrix.toList)
+        (probs Matrix.! fromIntegral char)
+      go these_chars topo
 
 rateMatrix
   :: forall m . Monad m

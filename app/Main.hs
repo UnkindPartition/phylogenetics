@@ -7,6 +7,7 @@ import Text.Printf (printf)
 import System.IO
 import Phylogenetics.Types
 import Phylogenetics.Gen
+import Phylogenetics.Likelihood_v2
 import Phylogenetics.Optimization
 
 main :: IO ()
@@ -50,22 +51,34 @@ trace num_steps = do
 
   printf "method,step,rate,ll,mse\n"
 
-  forM_ methods $ \Method{..} ->
+  forM_ methods $ \Method{..} -> do
+    printf "%s,0,NA,%.6f,%.6g\n"
+      methodName
+      (logLikelihood prob init_bls)
+      (calculateMSE init_bls true_bls)
     flip evalStateT (TraceState methodInit init_bls) $
-    forM_ [1 .. num_steps] $ \istep ->
-    runMaybeT $ do
-      prev_state <- get
-      case methodStep prob (trace_bls prev_state) (trace_method_state prev_state) of
-        Just (bls, actual_learning_rate, ll, st) -> do
-          put $! TraceState st bls
-          let mse =
-                case sum . fmap (^(2::Int)) $ bls - true_bls of
-                  BranchLength sum_errors_squared ->
-                    sum_errors_squared / fromIntegral (size true_bls)
-          liftIO $ printf "%s,%d,%.4g,%.6f,%.6g\n" methodName istep actual_learning_rate ll mse
-        Nothing -> mzero
+      forM_ [1 .. num_steps] $ \istep ->
+      runMaybeT $ do
+        prev_state <- get
+        case methodStep prob (trace_bls prev_state) (trace_method_state prev_state) of
+          Just (bls, actual_learning_rate, ll, st) -> do
+            put $! TraceState st bls
+            liftIO $ printf "%s,%d,%.4g,%.6f,%.6g\n" methodName istep actual_learning_rate ll (calculateMSE bls true_bls)
+            --liftIO $ print bls
+          Nothing -> mzero
 
   return ()
   where
     bd = dnaBaseDistributions
-    methods = gradientDescent <$> [1e-3, 1e-4, 1e-5]
+      { numberOfSitesDistribution = pure 500
+      }
+    methods = gradientDescent <$> [1e-3, 1e-2]
+
+calculateMSE
+  :: BranchLengths
+  -> BranchLengths
+  -> Double
+calculateMSE bls true_bls =
+  case sum . fmap (^(2::Int)) $ bls - true_bls of
+    BranchLength sum_errors_squared ->
+      sum_errors_squared / fromIntegral (size true_bls)

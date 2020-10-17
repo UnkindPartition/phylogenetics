@@ -68,4 +68,4 @@ trace num_steps = do
   return ()
   where
     bd = dnaBaseDistributions
-    methods = gradientDescent <$> [1, 0.1, 0.01]
+    methods = gradientDescent <$> [1e-3, 1e-4, 1e-5]

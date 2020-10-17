@@ -43,13 +43,36 @@ traceParser = trace
     <> value 2020
     <> showDefault
     )
+  <*> option auto
+    (  long "num-sites"
+    <> metavar "NUMBER"
+    <> help "Number of observed sites"
+    <> value 100
+    <> showDefault
+    )
+  <*> option auto
+    (  long "num-leaves"
+    <> metavar "NUMBER"
+    <> help "Number of leaves in a tree"
+    <> value 10
+    <> showDefault
+    )
 
 data TraceState method_state = TraceState
   { trace_method_state :: !method_state
   }
 
-trace :: Int -> Word64 -> IO ()
-trace num_steps seed = do
+trace
+  :: Int
+    -- ^ number of optimization steps
+  -> Word64
+    -- ^ random seed
+  -> Int
+    -- ^ number of observed sites
+  -> Int
+    -- ^ number of leaves in a tree
+  -> IO ()
+trace num_steps seed num_sites num_leaves = do
   hSetBuffering stdout LineBuffering
   rnd_src <- newIORef (pureMT seed)
 
@@ -95,8 +118,8 @@ trace num_steps seed = do
   return ()
   where
     bd = dnaBaseDistributions
-      { numberOfSitesDistribution = pure 300
-      , numberOfLeavesInTreeDistribution = pure 30
+      { numberOfSitesDistribution = pure num_sites
+      , numberOfLeavesInTreeDistribution = pure num_leaves
       }
     methods =
       [noDescent] ++ (gradientDescent <$> [1e-4])

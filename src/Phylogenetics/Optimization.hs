@@ -37,7 +37,7 @@ gradientDescentStep rate0 prob bls () = go rate0 where
   (ll, grad) = gradient prob bls
   go rate =
     let
-      bls' = bls + (BranchLength . (rate *) <$> grad)
+      bls' = (max 1e-10) <$> bls + (BranchLength . (rate *) <$> grad)
       ll' = logLikelihood prob bls'
     in
       if

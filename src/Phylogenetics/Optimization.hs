@@ -43,4 +43,4 @@ gradientDescentStep rate0 prob bls () = go rate0 where
       if
         | ll' > ll -> Just (bls', rate, ll', ())
         | rate < 1e-10 -> Nothing
-        | otherwise -> go (rate / 3)
+        | otherwise -> go (rate / 5)

@@ -55,7 +55,7 @@ trace num_steps = do
       methodName
       (logLikelihood prob init_bls)
       (calculateMSE init_bls true_bls)
-    flip evalStateT (TraceState (methodInit init_bls)) $
+    flip evalStateT (TraceState (methodInit prob init_bls)) $
       forM_ [1 .. num_steps] $ \istep ->
       runMaybeT $ do
         prev_state <- get
@@ -69,9 +69,11 @@ trace num_steps = do
   return ()
   where
     bd = dnaBaseDistributions
-      { numberOfSitesDistribution = pure 500
+      { numberOfSitesDistribution = pure 300
+      , numberOfLeavesInTreeDistribution = pure 30
       }
-    methods = gradientDescent <$> [1e-2, 1e-3, 1e-4, 1e-5]
+    methods =
+      [noDescent] ++ (gradientDescent <$> [1e-3, 1e-4])
 
 calculateMSE
   :: BranchLengths

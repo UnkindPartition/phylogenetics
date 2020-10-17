@@ -128,5 +128,5 @@ instance Num a => Num (NodeMap a) where
   negate = coerce (IntMap.map @a negate)
   fromInteger = error "fromInteger is not supported for NodeMaps"
 
-l2norm :: BranchLengths -> Double
-l2norm = sqrt . sum . fmap (\(BranchLength b) -> b^(2::Int))
+l2norm :: Real a => NodeMap a -> Double
+l2norm = sqrt . sum . fmap (realToFrac . (^(2::Int)))

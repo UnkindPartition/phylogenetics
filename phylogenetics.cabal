@@ -39,7 +39,7 @@ test-suite test
     NaiveLikelihood
     NaiveGradient
   ghc-options:
-    -Wall -Wno-orphans -Wno-name-shadowing -threaded
+    -Wall -Wno-orphans -Wno-name-shadowing -threaded -with-rtsopts=-N
   build-depends:
       base >= 4
     , phylogenetics

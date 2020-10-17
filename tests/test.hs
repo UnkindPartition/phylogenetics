@@ -10,6 +10,7 @@ import Phylogenetics.Types as Phylo
 import qualified Phylogenetics.Likelihood_v1 as V1
 import qualified Phylogenetics.Likelihood_v2 as V2
 import qualified Phylogenetics.Gen as Gen
+import qualified Phylogenetics.Opt.GradientDescent as GD
 import NaiveLikelihood
 import NaiveGradient
 
@@ -113,7 +114,48 @@ main = defaultMain $ testGroup "Tests"
             counterexample (show gr) $
               l1_diff < 1e-4
     ]
+  , testGroup "Optimization"
+    [ testGroup "GradientDescent"
+      [ testProperty "One step improves the likelihood of the original branch lengths" $
+          testWithRealisticPhylogeneticsModel $ \prob bls ->
+            case GD.step 0.01 prob bls of
+              Nothing -> label "step returned Nothing" True
+              Just (bls', ll) -> property $
+                (ll - V2.logLikelihood prob bls') < 1e-10 &&
+                (ll > V2.logLikelihood prob bls)
+      , testProperty "One step improves the likelihood of initial branch lengths" $
+          testWithRealisticPhylogeneticsModel $ \prob bls ->
+            let
+              init_bls = 0.1 <$ bls
+              init_ll = V2.logLikelihood prob init_bls
+              orig_ll = V2.logLikelihood prob bls
+            in
+            counterexample (printf "init_ll = %.3f, orig_ll = %.3f" init_ll orig_ll) $
+            case GD.step 0.01 prob init_bls of
+              Nothing -> counterexample "step returned Nothing" False
+              Just (_bls', step_ll) -> property $
+                  counterexample (printf "step_ll = %.3f" step_ll) $
+                  classify (step_ll > orig_ll) "Improved above the original LL" $
+                    init_ll < step_ll
+      ]
+    ]
   ]
+
+testWithRealisticPhylogeneticsModel
+  :: QC.Testable a
+  => (Problem -> BranchLengths -> a)
+  -> Property
+testWithRealisticPhylogeneticsModel k =
+  forAll (Gen.rateMatrix bd) $ \rate_mx ->
+  forAll (Gen.topology bd) $ \topo ->
+  forAll (Gen.branchLengths bd topo) $ \bls ->
+  forAll (Gen.realisticObservations bd rate_mx topo bls) $ \obs ->
+  k (Problem rate_mx obs topo) bls
+  where
+    bd = qcDistributions
+      { Gen.numberOfSitesDistribution = pure 100
+      , Gen.numberOfLeavesInTreeDistribution = choose (3,10)
+      }
 
 testWithPhylogeneticsModel
   :: QC.Testable a

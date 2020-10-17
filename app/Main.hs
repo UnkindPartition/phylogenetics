@@ -88,7 +88,7 @@ trace num_steps = do
       , numberOfLeavesInTreeDistribution = pure 30
       }
     methods =
-      [noDescent] ++ (gradientDescent <$> [1e-3, 1e-4])
+      [noDescent] ++ (gradientDescent <$> [1e-4])
 
 calculateMSE
   :: BranchLengths

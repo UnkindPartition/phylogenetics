@@ -33,7 +33,7 @@ executable phylo
   main-is: Main.hs
   build-depends:       base, vector, random-fu, containers, mtl,
                        tuples-homogenous-h98, hmatrix, optparse-applicative,
-                       phylogenetics
+                       phylogenetics, transformers
   ghc-options:         -Wall
   default-language:    Haskell2010
   default-extensions:  ScopedTypeVariables, RecordWildCards, NamedFieldPuns,

@@ -1,8 +1,10 @@
 import Options.Applicative
 import Control.Monad
 import Control.Monad.State
+import Control.Monad.Trans.Maybe
 import Data.Random
 import Text.Printf (printf)
+import System.IO
 import Phylogenetics.Types
 import Phylogenetics.Gen
 import Phylogenetics.Optimization
@@ -35,6 +37,8 @@ data TraceState method_state = TraceState
 
 trace :: Int -> IO ()
 trace num_steps = do
+  hSetBuffering stdout LineBuffering
+
   (prob, true_bls) <- sample $ do
     rate_mx <- rateMatrix bd
     topo <- topology bd
@@ -48,17 +52,18 @@ trace num_steps = do
 
   forM_ methods $ \Method{..} ->
     flip evalStateT (TraceState methodInit init_bls) $
-      forM_ [1 .. num_steps] $ \istep -> do
-        prev_state <- get
-        case methodStep prob (trace_bls prev_state) (trace_method_state prev_state) of
-          Just (bls, actual_learning_rate, ll, st) -> do
-            put $! TraceState st bls
-            let mse =
-                  case sum . fmap (^(2::Int)) $ bls - true_bls of
-                    BranchLength sum_errors_squared ->
-                      sum_errors_squared / fromIntegral (size true_bls)
-            liftIO $ printf "%s,%d,%.4g,%.6f,%.6g\n" methodName istep actual_learning_rate ll mse
-          Nothing -> mzero
+    forM_ [1 .. num_steps] $ \istep ->
+    runMaybeT $ do
+      prev_state <- get
+      case methodStep prob (trace_bls prev_state) (trace_method_state prev_state) of
+        Just (bls, actual_learning_rate, ll, st) -> do
+          put $! TraceState st bls
+          let mse =
+                case sum . fmap (^(2::Int)) $ bls - true_bls of
+                  BranchLength sum_errors_squared ->
+                    sum_errors_squared / fromIntegral (size true_bls)
+          liftIO $ printf "%s,%d,%.4g,%.6f,%.6g\n" methodName istep actual_learning_rate ll mse
+        Nothing -> mzero
 
   return ()
   where

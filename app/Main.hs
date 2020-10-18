@@ -87,51 +87,47 @@ trace num_steps seed num_sites num_leaves =
       return (Problem rate_mx obs topo, bls)
 
     let
+      init_bls = 0.1 <$ true_bls
       true_ll = logLikelihood prob true_bls
-      inits :: [(BranchLengths, String)]
-      inits = [(true_bls, "truth"),(0.1 <$ true_bls, "all 0.1")]
 
     hPrintf info_h "var,value\n"
     hPrintf info_h "true_ll,%.6f\n" true_ll
 
-    hPrintf trace_h "method,init,step,rate,ll,mse,time\n"
+    hPrintf trace_h "method,step,rate,ll,mse,time\n"
 
-    forM_ inits $ \(init_bls, init_bls_desc) ->
-      forM_ methods $ \Method{..} -> do
-        hPrintf trace_h "%s,%s,0,NA,%.6f,%.6g,0\n"
-          methodName
-          init_bls_desc
-          (logLikelihood prob init_bls)
-          (calculateMSE init_bls true_bls)
-        flip evalStateT (TraceState (methodInit prob init_bls)) $
-          forM_ [1 .. num_steps] $ \istep ->
-          runMaybeT $ do
-            prev_state <- get
-            t0 <- liftIO $ getTime ProcessCPUTime
-            let step_result = methodStep prob (trace_method_state prev_state)
-            case step_result of
-              Nothing -> pure ()
-              Just (bls, actual_learning_rate, ll, _) -> do
-                liftIO . evaluate . rnf $ bls
-                liftIO . evaluate . rnf $ actual_learning_rate
-                liftIO . evaluate . rnf $ ll
-            t1 <- liftIO $ getTime ProcessCPUTime
-            let
-              time :: Double
-              time = fromIntegral (toNanoSecs (diffTimeSpec t1 t0)) / 1e9
-            case methodStep prob (trace_method_state prev_state) of
-              Just (bls, actual_learning_rate, ll, st) -> do
-                put $! TraceState st
-                liftIO $ hPrintf trace_h "%s,%s,%d,%.4g,%.6f,%.6g,%.3g\n" methodName init_bls_desc istep actual_learning_rate ll (calculateMSE bls true_bls) time
-                --liftIO $ print bls
-              Nothing -> mzero
+    forM_ methods $ \Method{..} -> do
+      hPrintf trace_h "%s,0,NA,%.6f,%.6g,0\n"
+        methodName
+        (logLikelihood prob init_bls)
+        (calculateMSE init_bls true_bls)
+      flip evalStateT (TraceState (methodInit prob init_bls)) $
+        forM_ [1 .. num_steps] $ \istep ->
+        runMaybeT $ do
+          prev_state <- get
+          t0 <- liftIO $ getTime ProcessCPUTime
+          let step_result = methodStep prob (trace_method_state prev_state)
+          case step_result of
+            Nothing -> pure ()
+            Just (bls, actual_learning_rate, ll, _) -> do
+              liftIO . evaluate . rnf $ bls
+              liftIO . evaluate . rnf $ actual_learning_rate
+              liftIO . evaluate . rnf $ ll
+          t1 <- liftIO $ getTime ProcessCPUTime
+          let
+            time :: Double
+            time = fromIntegral (toNanoSecs (diffTimeSpec t1 t0)) / 1e9
+          case methodStep prob (trace_method_state prev_state) of
+            Just (bls, actual_learning_rate, ll, st) -> do
+              put $! TraceState st
+              liftIO $ hPrintf trace_h "%s,%d,%.4g,%.6f,%.6g,%.3g\n" methodName istep actual_learning_rate ll (calculateMSE bls true_bls) time
+              --liftIO $ print bls
+            Nothing -> mzero
 
     return ()
   where
     bd = dnaBaseDistributions
       { numberOfSitesDistribution = pure num_sites
       , numberOfLeavesInTreeDistribution = pure num_leaves
-      , branchLengthDistribution = uniform 0.05 0.5
       }
     methods =
       [noDescent] ++ (gradientDescent <$> [1e-4])

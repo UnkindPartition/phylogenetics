@@ -57,6 +57,13 @@ traceParser = trace
     <> value 10
     <> showDefault
     )
+  <*> option auto
+    (  long "num-lik-points"
+    <> metavar "NUMBER"
+    <> help "Number of likelihood profile points"
+    <> value 100
+    <> showDefault
+    )
 
 data TraceState method_state = TraceState
   { trace_method_state :: !method_state
@@ -72,8 +79,10 @@ trace
     -- ^ number of observed sites
   -> Int
     -- ^ number of leaves in a tree
+  -> Int
+    -- ^ number of likelihood profile points
   -> IO ()
-trace num_steps seed num_sites num_leaves =
+trace num_steps seed num_sites num_leaves num_lik_points =
   withFile "trace.csv" WriteMode $ \trace_h ->
   withFile "info.csv" WriteMode $ \info_h -> do
   withFile "likprofile.csv" WriteMode $ \lik_h -> do
@@ -129,11 +138,12 @@ trace num_steps seed num_sites num_leaves =
             Nothing -> throwE $ trace_bls prev_state
 
       -- write the likelihood profile when going from opt_bls to true_bls
-      forM_ [0, 1e-2 .. 1] $ \alpha -> do
-        let
-          bls = ((BranchLength alpha *) <$> true_bls) + ((BranchLength (1-alpha) *) <$> opt_bls)
-          ll = logLikelihood prob bls
-        hPrintf lik_h "%s,%f,%f\n" methodName alpha ll
+      when (num_lik_points > 1) $
+        forM_ [0, 1 / fromIntegral (num_lik_points-1) .. 1] $ \alpha -> do
+          let
+            bls = ((BranchLength alpha *) <$> true_bls) + ((BranchLength (1-alpha) *) <$> opt_bls)
+            ll = logLikelihood prob bls
+          hPrintf lik_h "%s,%f,%f\n" methodName alpha ll
 
     return ()
   where

@@ -14,7 +14,7 @@ lik <- read_csv("likprofile.csv")
 ggplot(d, aes(step, ll, color=method)) +
   labs(x="Step", y="Log likelihood") +
   geom_hline(aes(yintercept = info$true_ll)) +
-  ylim(max(info$true_ll-10,min(d$ll)),NA) +
+  # ylim(max(info$true_ll-10,min(d$ll)),NA) +
   geom_line()
 ggsave("loglik.png", width=12)
 
@@ -38,7 +38,7 @@ ggsave("time.png", width=12)
 ggplot(d, aes(cumtime, ll, color=method)) +
   labs(x="Time", y="Log likelihood") +
   geom_hline(aes(yintercept = info$true_ll)) +
-  ylim(max(info$true_ll-10,min(d$ll)),NA) +
+  # ylim(max(info$true_ll-10,min(d$ll)),NA) +
   geom_line()
 ggsave("loglik_by_time.png", width=12)
 

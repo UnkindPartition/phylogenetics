@@ -13,8 +13,8 @@ data Method = forall method_state . Method
   { methodName :: String
   , methodStep :: Problem
                -> method_state
-               -> Maybe (BranchLengths, Double, Double, method_state)
-                 -- new bls, actual learning rate, new likelihood, new state
+               -> Maybe (BranchLengths, Double, Double, Double, method_state)
+                 -- new bls, actual learning rate, new likelihood, gradient norm, new state
   , methodInit :: Problem -> BranchLengths -> method_state
     -- ^ construct the initial state from the starting point
   }
@@ -40,7 +40,7 @@ gradientDescentStep
   :: Double -- ^ learning rate
   -> Problem
   -> BranchLengths
-  -> Maybe (BranchLengths, Double, Double, BranchLengths) -- ^ new branch lengths, actual learning rate, log-likelihood, new state
+  -> Maybe (BranchLengths, Double, Double, Double, BranchLengths)
 gradientDescentStep rate0 prob bls = go rate0 where
   go rate =
     let
@@ -49,7 +49,7 @@ gradientDescentStep rate0 prob bls = go rate0 where
       ll' = logLikelihood prob bls'
     in
       if
-        | ll' > ll -> Just (bls', rate, ll', bls')
+        | ll' > ll -> Just (bls', rate, ll', l2norm grad, bls')
         | rate < 1e-10 -> Nothing
         | otherwise -> go (rate / 5)
 
@@ -71,7 +71,7 @@ noDescent = Method
             new_bls = gradientUpdate prev_λ this_bls this_grad
             (new_ll, new_grad) = gradient prob new_bls
           in
-            Just ( new_bls, prev_λ, new_ll
+            Just ( new_bls, prev_λ, new_ll, l2norm this_grad
                  , NoDescentState prev_λ prev_θ (new_bls, new_grad) (Just (this_bls, this_grad)))
         Just (prev_bls, prev_grad) ->
           let
@@ -82,6 +82,6 @@ noDescent = Method
             (new_ll, new_grad) = gradient prob new_bls
             θ = λ / prev_λ
           in
-            Just ( new_bls, λ, new_ll
+            Just ( new_bls, λ, new_ll, l2norm this_grad
                  , NoDescentState λ θ (new_bls, new_grad) (Just (this_bls, this_grad)))
   }

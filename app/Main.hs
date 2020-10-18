@@ -96,11 +96,11 @@ trace num_steps seed num_sites num_leaves =
     hPrintf info_h "var,value\n"
     hPrintf info_h "true_ll,%.6f\n" true_ll
 
-    hPrintf trace_h "method,step,rate,ll,mse,time\n"
+    hPrintf trace_h "method,step,rate,ll,mse,time,grad_norm\n"
     hPrintf lik_h "method,alpha,ll\n"
 
     forM_ methods $ \Method{..} -> do
-      hPrintf trace_h "%s,0,NA,%.6f,%.6g,0\n"
+      hPrintf trace_h "%s,0,NA,%.6f,%.6g,0,0\n"
         methodName
         (logLikelihood prob init_bls)
         (calculateMSE init_bls true_bls)
@@ -111,18 +111,19 @@ trace num_steps seed num_sites num_leaves =
           let step_result = methodStep prob (trace_method_state prev_state)
           case step_result of
             Nothing -> pure ()
-            Just (bls, actual_learning_rate, ll, _) -> do
+            Just (bls, actual_learning_rate, ll, grad_norm, _) -> do
               liftIO . evaluate . rnf $ bls
               liftIO . evaluate . rnf $ actual_learning_rate
               liftIO . evaluate . rnf $ ll
+              liftIO . evaluate . rnf $ grad_norm
           t1 <- liftIO $ getTime ProcessCPUTime
           let
             time :: Double
             time = fromIntegral (toNanoSecs (diffTimeSpec t1 t0)) / 1e9
           case methodStep prob (trace_method_state prev_state) of
-            Just (bls, actual_learning_rate, ll, st) -> do
+            Just (bls, actual_learning_rate, ll, grad_norm, st) -> do
               put $! TraceState st bls
-              liftIO $ hPrintf trace_h "%s,%d,%.4g,%.6f,%.6g,%.3g\n" methodName istep actual_learning_rate ll (calculateMSE bls true_bls) time
+              liftIO $ hPrintf trace_h "%s,%d,%.4g,%.6f,%.6g,%.3g,%g\n" methodName istep actual_learning_rate ll (calculateMSE bls true_bls) time grad_norm
               when (istep >= num_steps) $
                 throwE bls
             Nothing -> throwE $ trace_bls prev_state

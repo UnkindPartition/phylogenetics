@@ -46,3 +46,8 @@ ggplot(lik, aes(alpha, ll, color=method)) +
   labs(x="opt -> true", y="Log likelihood") +
   geom_line()
 ggsave("likprofile.png", width=12)
+
+ggplot(d, aes(step, grad_norm, color=method)) +
+  labs(x="Step", y="Gradient norm") +
+  geom_line()
+ggsave("grad_norm.png", width=12)

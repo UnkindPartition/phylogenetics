@@ -1,7 +1,7 @@
 import Options.Applicative
 import Control.Monad
 import Control.Monad.State
-import Control.Monad.Trans.Maybe
+import Control.Monad.Trans.Except
 import Control.DeepSeq
 import Control.Exception
 import Data.Random
@@ -60,6 +60,7 @@ traceParser = trace
 
 data TraceState method_state = TraceState
   { trace_method_state :: !method_state
+  , trace_bls :: !BranchLengths
   }
 
 trace
@@ -75,8 +76,10 @@ trace
 trace num_steps seed num_sites num_leaves =
   withFile "trace.csv" WriteMode $ \trace_h ->
   withFile "info.csv" WriteMode $ \info_h -> do
+  withFile "likprofile.csv" WriteMode $ \lik_h -> do
     hSetBuffering trace_h LineBuffering
     hSetBuffering info_h LineBuffering
+    hSetBuffering lik_h LineBuffering
     rnd_src <- newIORef (pureMT seed)
 
     (prob, true_bls) <- flip runRVar rnd_src $ do
@@ -94,15 +97,15 @@ trace num_steps seed num_sites num_leaves =
     hPrintf info_h "true_ll,%.6f\n" true_ll
 
     hPrintf trace_h "method,step,rate,ll,mse,time\n"
+    hPrintf lik_h "method,alpha,ll\n"
 
     forM_ methods $ \Method{..} -> do
       hPrintf trace_h "%s,0,NA,%.6f,%.6g,0\n"
         methodName
         (logLikelihood prob init_bls)
         (calculateMSE init_bls true_bls)
-      flip evalStateT (TraceState (methodInit prob init_bls)) $
-        forM_ [1 .. num_steps] $ \istep ->
-        runMaybeT $ do
+      Left opt_bls <- flip evalStateT (TraceState (methodInit prob init_bls) init_bls) $ runExceptT $
+        forM_ [1 ..] $ \istep -> do
           prev_state <- get
           t0 <- liftIO $ getTime ProcessCPUTime
           let step_result = methodStep prob (trace_method_state prev_state)
@@ -118,10 +121,18 @@ trace num_steps seed num_sites num_leaves =
             time = fromIntegral (toNanoSecs (diffTimeSpec t1 t0)) / 1e9
           case methodStep prob (trace_method_state prev_state) of
             Just (bls, actual_learning_rate, ll, st) -> do
-              put $! TraceState st
+              put $! TraceState st bls
               liftIO $ hPrintf trace_h "%s,%d,%.4g,%.6f,%.6g,%.3g\n" methodName istep actual_learning_rate ll (calculateMSE bls true_bls) time
-              --liftIO $ print bls
-            Nothing -> mzero
+              when (istep >= num_steps) $
+                throwE bls
+            Nothing -> throwE $ trace_bls prev_state
+
+      -- write the likelihood profile when going from opt_bls to true_bls
+      forM_ [0, 1e-2 .. 1] $ \alpha -> do
+        let
+          bls = ((BranchLength alpha *) <$> true_bls) + ((BranchLength (1-alpha) *) <$> opt_bls)
+          ll = logLikelihood prob bls
+        hPrintf lik_h "%s,%f,%f\n" methodName alpha ll
 
     return ()
   where

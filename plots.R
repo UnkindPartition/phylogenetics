@@ -11,10 +11,11 @@ info <- read_csv("info.csv") %>%
 
 lik <- read_csv("likprofile.csv")
 
-ggplot(d, aes(step, ll, color=method)) +
-  labs(x="Step", y="Log likelihood") +
+d %>% mutate(ll = max(ll) - ll) %>%
+ggplot(aes(step, ll, color=method)) +
+  labs(x="Step", y="Log likelihood, distance to maximum") +
   geom_hline(aes(yintercept = info$true_ll)) +
-  # ylim(max(info$true_ll-10,min(d$ll)),NA) +
+  scale_y_log10() +
   geom_line()
 ggsave("loglik.png", width=12)
 
@@ -26,6 +27,7 @@ ggsave("rate.png", width=12)
 
 ggplot(d, aes(step, mse, color=method)) +
   labs(x="Step", y="Mean squared error") +
+  scale_y_log10() +
   expand_limits(y=0) +
   geom_line()
 ggsave("mse.png", width=12)
@@ -47,7 +49,9 @@ ggplot(lik, aes(alpha, ll, color=method)) +
   geom_line()
 ggsave("likprofile.png", width=12)
 
-ggplot(d, aes(step, grad_norm, color=method)) +
+d %>% filter(step > 0) %>%
+ggplot(aes(step, grad_norm, color=method)) +
   labs(x="Step", y="Gradient norm") +
+  scale_y_log10() +
   geom_line()
 ggsave("grad_norm.png", width=12)

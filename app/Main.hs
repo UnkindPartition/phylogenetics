@@ -152,7 +152,7 @@ trace num_steps seed num_sites num_leaves num_lik_points =
       , numberOfLeavesInTreeDistribution = pure num_leaves
       }
     methods =
-      [noDescent] ++ (gradientDescent <$> [1e-4])
+      [noDescent, noDescentAccelerated] ++ (gradientDescent <$> [1e-4])
 
 calculateMSE
   :: BranchLengths

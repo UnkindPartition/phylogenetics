@@ -62,7 +62,7 @@ data NoDescentState = NoDescentState
 
 noDescent :: Method
 noDescent = Method
-  { methodName = printf "Without descent"
+  { methodName = "Without descent"
   , methodInit = \prob bls -> NoDescentState 1e-4 (1/0) (bls, snd $ gradient prob bls) Nothing
   , methodStep = \prob (NoDescentState prev_λ prev_θ (this_bls, this_grad) mb_prev) ->
       case mb_prev of
